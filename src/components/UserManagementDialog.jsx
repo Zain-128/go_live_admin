@@ -1,0 +1,644 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Badge } from './ui/badge';
+import { Select, SelectItem } from './ui/select';
+import { Switch } from './ui/switch';
+import {
+  User,
+  Mail,
+  Calendar,
+  Shield,
+  Activity,
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  Loader2,
+  Key,
+  Trash2,
+  Edit,
+  Save,
+  X
+} from 'lucide-react';
+import api from '../services/api';
+import { toast } from 'sonner';
+
+export const UserManagementDialog = ({ isOpen, onClose, user, onUserUpdated }) => {
+  // Form state for editing
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    username: '',
+    isActive: true,
+    roleId: ''
+  });
+
+  // UI state
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [roles, setRoles] = useState([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
+
+  // Password reset state
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+  const [showTempPassword, setShowTempPassword] = useState(false);
+  const [tempPassword, setTempPassword] = useState('');
+
+  // Delete confirmation state
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Check if current user can manage the target user
+  const canManageUser = () => {
+    const currentUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+    return user && currentUser.role?.level > user.role?.level;
+  };
+
+  // Initialize form data when user changes
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        username: user.username || '',
+        isActive: user.isActive ?? true,
+        roleId: user.role?._id || ''
+      });
+    }
+    setError('');
+    setIsEditing(false);
+    setShowTempPassword(false);
+    setShowDeleteConfirmation(false);
+  }, [user]);
+
+  // Fetch roles when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchRoles();
+    }
+  }, [isOpen]);
+
+  const fetchRoles = async () => {
+    try {
+      setRolesLoading(true);
+      const response = await api.get('/rbac/roles');
+      if (response.data.success) {
+        // Backend returns roles nested in response.data.data.roles
+        setRoles(response.data.data.roles || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch roles:', err);
+      setError('Failed to load roles');
+    } finally {
+      setRolesLoading(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getRoleBadgeVariant = (roleName) => {
+    switch (roleName) {
+      case 'SUPER_ADMIN':
+        return 'destructive';
+      case 'ADMIN':
+        return 'default';
+      case 'STAFF':
+        return 'secondary';
+      case 'USER':
+        return 'outline';
+      default:
+        return 'outline';
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    if (error) setError('');
+  };
+
+  const handleStatusToggle = async (checked) => {
+    if (!user?._id) return;
+
+    // Store previous value for rollback
+    const previousValue = formData.isActive;
+
+    // Optimistic update - update UI immediately
+    setFormData(prev => ({ ...prev, isActive: checked }));
+    setLoading(true);
+
+    try {
+      const updateData = {
+        ...formData,
+        isActive: checked
+      };
+
+      const response = await api.put(`/admin/users/${user._id}`, updateData);
+
+      if (response.data.success) {
+        // Success - update parent component
+        onUserUpdated(response.data.data);
+        toast.success(`User ${checked ? 'activated' : 'deactivated'} successfully!`);
+      } else {
+        // Rollback on failure
+        setFormData(prev => ({ ...prev, isActive: previousValue }));
+        toast.error('Failed to update user status');
+      }
+    } catch (err) {
+      console.error('Failed to update user status:', err);
+      // Rollback on error
+      setFormData(prev => ({ ...prev, isActive: previousValue }));
+      toast.error('Failed to update user status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRoleChange = (roleId) => {
+    setFormData(prev => ({
+      ...prev,
+      roleId
+    }));
+    if (error) setError('');
+  };
+
+  const handleSave = async () => {
+    if (!user?._id) return;
+
+    setLoading(true);
+    setError('');
+
+    try {
+      // Send roleId as ObjectId if role was changed
+      const roleChanged = formData.roleId !== user.role?._id;
+
+      const updateData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        username: formData.username,
+        isActive: formData.isActive,
+        ...(roleChanged && { role: formData.roleId }) // Send ObjectId, not name
+      };
+
+      const response = await api.put(`/admin/users/${user._id}`, updateData);
+
+      if (response.data.success) {
+        onUserUpdated(response.data.data);
+        setIsEditing(false);
+        toast.success('User updated successfully!');
+      }
+    } catch (err) {
+      console.error('Failed to update user:', err);
+      setError(err.response?.data?.message || 'Failed to update user');
+      toast.error('Failed to update user');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setFormData({
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      email: user.email || '',
+      username: user.username || '',
+      isActive: user.isActive ?? true,
+      roleId: user.role?._id || ''
+    });
+    setIsEditing(false);
+    setError('');
+  };
+
+  const handleResetPassword = async () => {
+    setResetPasswordLoading(true);
+    try {
+      const response = await api.patch(`/admin/users/${user._id}/reset-password`);
+
+      if (response.data.success) {
+        const newTempPassword = response.data.data.tempPassword;
+        setTempPassword(newTempPassword);
+        setShowTempPassword(true);
+        toast.success('Password reset successfully!');
+      }
+    } catch (error) {
+      console.error('Failed to reset password:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to reset password. Please try again.';
+      toast.error(errorMessage);
+    } finally {
+      setResetPasswordLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    setDeleteLoading(true);
+    try {
+      const response = await api.delete(`/admin/users/${user._id}`);
+
+      if (response.data.success) {
+        onUserUpdated(null, 'deleted'); // Special signal for deletion
+        onClose();
+        toast.success(`User ${user.firstName} ${user.lastName} has been deleted successfully.`);
+      }
+    } catch (error) {
+      console.error('Failed to delete user:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to delete user. Please try again.';
+      toast.error(errorMessage);
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteConfirmation(false);
+    }
+  };
+
+  if (!user) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+
+        {/* User Header */}
+        <div className="flex items-center space-x-4 pb-4 border-b">
+
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-gray-900">
+              {user.firstName} {user.lastName}
+            </h3>
+            <div className="flex items-center space-x-2 mt-1">
+              {formData.isActive ? (
+                <CheckCircle className="w-4 h-4 text-green-500" />
+              ) : (
+                <XCircle className="w-4 h-4 text-red-500" />
+              )}
+              <span className={`text-sm ${
+                formData.isActive ? 'text-green-700' : 'text-red-700'
+              }`}>
+                {formData.isActive ? 'Active' : 'Inactive'}
+              </span>
+              <Badge variant={getRoleBadgeVariant(user.role?.name)}>
+                {user.role?.name || 'No role assigned'}
+              </Badge>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-6 mt-6">
+            {error && (
+              <div className="flex items-center gap-2 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+                <AlertTriangle className="h-4 w-4" />
+                {error}
+              </div>
+            )}
+
+            {/* Edit Toggle */}
+            <div className="flex justify-between items-center">
+              <h4 className="text-sm font-medium text-gray-900">
+                User Information
+              </h4>
+              {canManageUser() && !isEditing ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditing(true)}
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit
+                </Button>
+              ) : canManageUser() && isEditing ? (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCancel}
+                    disabled={loading}
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleSave}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 mr-2" />
+                        Save
+                      </>
+                    )}
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500 italic">
+                  View Only - Cannot manage users at your level or above
+                </div>
+              )}
+            </div>
+
+            {/* Personal Information */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <Input
+                  id="firstName"
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleInputChange}
+                  disabled={!canManageUser() || !isEditing || loading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleInputChange}
+                  disabled={!canManageUser() || !isEditing || loading}
+                />
+              </div>
+            </div>
+
+            {/* Contact Information */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  disabled={!canManageUser() || !isEditing || loading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleInputChange}
+                  disabled={!canManageUser() || !isEditing || loading}
+                />
+              </div>
+            </div>
+
+            {/* Role & Status */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="roleId">Role</Label>
+                {rolesLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading roles...
+                  </div>
+                ) : (
+                  <Select
+                    value={formData.roleId}
+                    onValueChange={handleRoleChange}
+                    placeholder="Select a role"
+                    disabled={!canManageUser() || !isEditing || loading}
+                  >
+                    {roles.map((role) => (
+                      <SelectItem key={role._id} value={role._id}>
+                        <div className="flex items-center justify-between w-full">
+                          <span className="flex items-center gap-2">
+                            <Shield className="h-3 w-3" />
+                            {role.name}
+                          </span>
+                          <Badge variant="outline" className="ml-2">
+                            Level {role.level}
+                          </Badge>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </Select>
+                )}
+              </div>
+
+            </div>
+
+            {/* Account Information (Read-only) */}
+            <div className="space-y-3 pt-4 border-t">
+              <h4 className="text-sm font-medium text-gray-900">
+                Account Information
+              </h4>
+              <div className="grid gap-3">
+                <div className="flex items-center space-x-3">
+                  <Calendar className="w-4 h-4 text-gray-500" />
+                  <div>
+                    <span className="text-sm font-medium text-gray-900">Joined:</span>
+                    <span className="text-sm text-gray-600 ml-2">
+                      {formatDate(user.createdAt)}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Clock className="w-4 h-4 text-gray-500" />
+                  <div>
+                    <span className="text-sm font-medium text-gray-900">Last Login:</span>
+                    <span className="text-sm text-gray-600 ml-2">
+                      {user.lastLogin ? formatDate(user.lastLogin) : 'Never'}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Activity className="w-4 h-4 text-gray-500" />
+                  <div>
+                    <span className="text-sm font-medium text-gray-900">Account ID:</span>
+                    <span className="text-sm text-gray-600 ml-2 font-mono">
+                      {user._id}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* Actions Section */}
+            {canManageUser() && (
+            <div className="space-y-6 pt-6 border-t">
+              <h4 className="text-sm font-medium text-gray-900">
+                Account Actions
+              </h4>
+
+              {/* Account Status Toggle */}
+              <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h4 className="text-sm font-medium text-blue-800">
+                      Account Status
+                    </h4>
+                    <p className="text-sm text-blue-700 mt-1">
+                      Control whether the user can log in to the system
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <span className={`text-sm font-medium ${
+                      formData.isActive ? 'text-green-700' : 'text-red-700'
+                    }`}>
+                      {formData.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                    <Switch
+                      checked={formData.isActive}
+                      onCheckedChange={handleStatusToggle}
+                      disabled={loading}
+                    />
+                  </div>
+                </div>
+              </div>
+            {/* Reset Password Section */}
+            <div className="border border-yellow-200 rounded-lg p-4 bg-yellow-50">
+              <div className="flex items-start space-x-3">
+                <Key className="w-5 h-5 text-yellow-600 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-yellow-800">
+                    Reset Password
+                  </h4>
+                  <p className="text-sm text-yellow-700 mt-1">
+                    Generate a new temporary password for this user. This will invalidate their current password.
+                  </p>
+
+                  {showTempPassword ? (
+                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded">
+                      <p className="text-sm font-medium text-green-800">
+                        Password Reset Successful
+                      </p>
+                      <p className="text-sm text-green-700 mt-1">
+                        Temporary Password: <code className="bg-green-100 px-2 py-1 rounded">{tempPassword}</code>
+                      </p>
+                      <p className="text-xs text-green-600 mt-2">
+                        Please share this with the user securely. They will be required to change it on next login.
+                      </p>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      className="mt-3"
+                      onClick={handleResetPassword}
+                      disabled={resetPasswordLoading}
+                    >
+                      {resetPasswordLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Resetting Password...
+                        </>
+                      ) : (
+                        <>
+                          <Key className="w-4 h-4 mr-2" />
+                          Reset Password
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Delete User Section */}
+            <div className="border border-red-200 rounded-lg p-4 bg-red-50">
+              <div className="flex items-start space-x-3">
+                <Trash2 className="w-5 h-5 text-red-600 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-red-800">
+                    Delete User
+                  </h4>
+                  <p className="text-sm text-red-700 mt-1">
+                    Permanently delete this user account. This action cannot be undone and will remove all associated data.
+                  </p>
+
+                  {!showDeleteConfirmation ? (
+                    <Button
+                      variant="destructive"
+                      className="mt-3"
+                      onClick={() => setShowDeleteConfirmation(true)}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete User
+                    </Button>
+                  ) : (
+                    <div className="mt-3 space-y-3">
+                      <div className="p-3 bg-red-100 border border-red-300 rounded">
+                        <p className="text-sm font-medium text-red-800">
+                          Are you absolutely sure?
+                        </p>
+                        <p className="text-sm text-red-700 mt-1">
+                          This will permanently delete <strong>{user.firstName} {user.lastName}</strong> and all associated data including:
+                        </p>
+                        <ul className="text-sm text-red-700 mt-2 list-disc list-inside">
+                          <li>Account information</li>
+                          <li>Activity history</li>
+                          <li>Associated records</li>
+                        </ul>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowDeleteConfirmation(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={handleDeleteUser}
+                          disabled={deleteLoading}
+                        >
+                          {deleteLoading ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Deleting...
+                            </>
+                          ) : (
+                            <>
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Yes, Delete User
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            </div>
+            )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end pt-4 border-t">
+          <Button onClick={onClose} variant="outline">
+            Close
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};

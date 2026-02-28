@@ -1,0 +1,403 @@
+import React from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import PropTypes from 'prop-types';
+import { Button } from './ui/button';
+import {
+  LayoutDashboard,
+  Users,
+  Settings,
+  Shield,
+  LogOut,
+  Menu,
+  X,
+  Package,
+  CreditCard,
+  BarChart3,
+  ChevronDown,
+  ChevronRight,
+  Layers,
+  QrCode,
+  Store,
+  ShoppingBag,
+  ShoppingCart,
+  Tags,
+  ClipboardList,
+  Star,
+  Wallet
+} from 'lucide-react';
+
+const AdminLayout = ({ children, user, onLogout }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+
+  // Auto-expand subscription menu if user is on a subscription page
+  const subscriptionPaths = ['/packages', '/subscriptions', '/subscription-stats'];
+  const isOnSubscriptionPage = subscriptionPaths.includes(location.pathname);
+  const [subscriptionMenuOpen, setSubscriptionMenuOpen] = React.useState(isOnSubscriptionPage);
+
+  // Auto-expand ecommerce menu if user is on an ecommerce page
+  const ecommercePaths = ['/vendors', '/products', '/categories', '/orders', '/reviews', '/payouts'];
+  const isOnEcommercePage = ecommercePaths.includes(location.pathname);
+  const [ecommerceMenuOpen, setEcommerceMenuOpen] = React.useState(isOnEcommercePage);
+
+  // Update menu state when route changes
+  React.useEffect(() => {
+    if (isOnSubscriptionPage && !subscriptionMenuOpen) {
+      setSubscriptionMenuOpen(true);
+    }
+    if (isOnEcommercePage && !ecommerceMenuOpen) {
+      setEcommerceMenuOpen(true);
+    }
+  }, [location.pathname, isOnSubscriptionPage, subscriptionMenuOpen, isOnEcommercePage, ecommerceMenuOpen]);
+
+  const navigation = [
+    {
+      name: 'Dashboard',
+      href: '/',
+      icon: LayoutDashboard,
+    },
+    {
+      name: 'User Management',
+      href: '/users',
+      icon: Users,
+    },
+    {
+      name: 'QR Codes',
+      href: '/qr-codes',
+      icon: QrCode,
+    },
+    {
+      name: 'Ecommerce',
+      icon: ShoppingCart,
+      isGroup: true,
+      groupKey: 'ecommerce',
+      children: [
+        {
+          name: 'Vendors',
+          href: '/vendors',
+          icon: Store,
+        },
+        {
+          name: 'Products',
+          href: '/products',
+          icon: ShoppingBag,
+        },
+        {
+          name: 'Categories',
+          href: '/categories',
+          icon: Tags,
+        },
+        {
+          name: 'Orders',
+          href: '/orders',
+          icon: ClipboardList,
+        },
+        {
+          name: 'Reviews',
+          href: '/reviews',
+          icon: Star,
+        },
+        {
+          name: 'Payouts',
+          href: '/payouts',
+          icon: Wallet,
+        },
+      ],
+    },
+    {
+      name: 'Subscriptions',
+      icon: Layers,
+      isGroup: true,
+      children: [
+        {
+          name: 'Packages',
+          href: '/packages',
+          icon: Package,
+        },
+        {
+          name: 'Subscriptions',
+          href: '/subscriptions',
+          icon: CreditCard,
+        },
+        {
+          name: 'Analytics',
+          href: '/subscription-stats',
+          icon: BarChart3,
+        },
+      ],
+    },
+    {
+      name: 'Settings',
+      href: '/settings',
+      icon: Settings,
+    },
+  ];
+
+  const handleLogout = () => {
+    if (onLogout) {
+      onLogout();
+    } else {
+      localStorage.removeItem('adminAccessToken');
+      localStorage.removeItem('adminRefreshToken');
+      localStorage.removeItem('adminUser');
+      navigate('/login');
+    }
+  };
+
+  const isActive = (path) => location.pathname === path;
+
+  const isGroupActive = (children) => {
+    return children.some(child => location.pathname === child.href);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Mobile sidebar */}
+      <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
+        <div className="fixed inset-0 bg-black bg-opacity-25" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed left-0 top-0 bottom-0 w-64 bg-white shadow-xl">
+          <div className="flex items-center justify-between p-4 border-b">
+            <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
+            <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(false)}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+          <nav className="p-4 space-y-1">
+            {navigation.map((item) => {
+              const Icon = item.icon;
+
+              if (item.isGroup) {
+                const isMenuOpen = item.groupKey === 'ecommerce' ? ecommerceMenuOpen : subscriptionMenuOpen;
+                const toggleMenu = item.groupKey === 'ecommerce'
+                  ? () => setEcommerceMenuOpen(!ecommerceMenuOpen)
+                  : () => setSubscriptionMenuOpen(!subscriptionMenuOpen);
+
+                return (
+                  <div key={item.name} className="space-y-1">
+                    <button
+                      onClick={toggleMenu}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium ${
+                        isGroupActive(item.children)
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Icon className="w-4 h-4" />
+                        <span>{item.name}</span>
+                      </div>
+                      {isMenuOpen ? (
+                        <ChevronDown className="w-4 h-4" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4" />
+                      )}
+                    </button>
+                    {isMenuOpen && (
+                      <div className="ml-4 space-y-1">
+                        {item.children.map((child) => {
+                          const ChildIcon = child.icon;
+                          return (
+                            <Link
+                              key={child.name}
+                              to={child.href}
+                              className={`flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium ${
+                                isActive(child.href)
+                                  ? 'bg-primary text-primary-foreground'
+                                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                              }`}
+                              onClick={() => setSidebarOpen(false)}
+                            >
+                              <ChildIcon className="w-4 h-4" />
+                              <span>{child.name}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              return (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={`flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium ${
+                    isActive(item.href)
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{item.name}</span>
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+      </div>
+
+      {/* Desktop sidebar */}
+      <div className="hidden lg:fixed lg:left-0 lg:top-0 lg:bottom-0 lg:w-64 lg:bg-white lg:border-r lg:flex lg:flex-col">
+        <div className="flex items-center px-6 py-4 border-b">
+          <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
+        </div>
+
+        <nav className="flex-1 p-4 space-y-1">
+          {navigation.map((item) => {
+            const Icon = item.icon;
+
+            if (item.isGroup) {
+              const isMenuOpen = item.groupKey === 'ecommerce' ? ecommerceMenuOpen : subscriptionMenuOpen;
+              const toggleMenu = item.groupKey === 'ecommerce'
+                ? () => setEcommerceMenuOpen(!ecommerceMenuOpen)
+                : () => setSubscriptionMenuOpen(!subscriptionMenuOpen);
+
+              return (
+                <div key={item.name} className="space-y-1">
+                  <button
+                    onClick={toggleMenu}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium ${
+                      isGroupActive(item.children)
+                        ? 'bg-primary/10 text-primary'
+                        : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <Icon className="w-4 h-4" />
+                      <span>{item.name}</span>
+                    </div>
+                    {isMenuOpen ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4" />
+                    )}
+                  </button>
+                  {isMenuOpen && (
+                    <div className="ml-4 space-y-1">
+                      {item.children.map((child) => {
+                        const ChildIcon = child.icon;
+                        return (
+                          <Link
+                            key={child.name}
+                            to={child.href}
+                            className={`flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium ${
+                              isActive(child.href)
+                                ? 'bg-primary text-primary-foreground'
+                                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                            }`}
+                          >
+                            <ChildIcon className="w-4 h-4" />
+                            <span>{child.name}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            return (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={`flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium ${
+                  isActive(item.href)
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                <span>{item.name}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="p-4 border-t">
+          {user && (
+            <div className="flex items-center space-x-2 mb-3 p-2 bg-gray-50 rounded-md">
+              <div className="h-8 w-8 bg-blue-600 rounded-full flex items-center justify-center">
+                <span className="text-sm font-medium text-white">
+                  {user.firstName?.[0]}{user.lastName?.[0]}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-gray-900 truncate">
+                  {user.firstName} {user.lastName}
+                </div>
+                <div className="text-xs text-gray-500 truncate">
+                  {user.role?.name || 'Admin'}
+                </div>
+              </div>
+            </div>
+          )}
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            onClick={handleLogout}
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Sign Out
+          </Button>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="lg:ml-64">
+        {/* Top bar */}
+        <div className="bg-white border-b px-4 py-3 flex items-center justify-between lg:px-6">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="lg:hidden"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <Menu className="w-4 h-4" />
+          </Button>
+
+          <div className="flex-1" />
+
+          <div className="flex items-center space-x-4">
+            {user && (
+              <div className="flex items-center space-x-2">
+                <div className="text-right">
+                  <div className="text-sm font-medium text-gray-900">
+                    {user.firstName} {user.lastName}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {user.role?.name || 'Admin'} • {user.email}
+                  </div>
+                </div>
+                <div className="h-8 w-8 bg-blue-600 rounded-full flex items-center justify-center">
+                  <span className="text-sm font-medium text-white">
+                    {user.firstName?.[0]}{user.lastName?.[0]}
+                  </span>
+                </div>
+              </div>
+            )}
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Page content */}
+        <main className="p-6 lg:p-8">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+};
+
+AdminLayout.propTypes = {
+  children: PropTypes.node.isRequired,
+  user: PropTypes.object,
+  onLogout: PropTypes.func,
+};
+
+export default AdminLayout;
