@@ -61,14 +61,12 @@ export const CreateUserDialog = ({ isOpen, onClose, onUserCreated }) => {
   const fetchRoles = async () => {
     try {
       setRolesLoading(true);
-      const response = await api.get('/rbac/roles');
+      const response = await api.get('/admin/roles');
       if (response.data.success) {
-        // Backend returns roles nested in response.data.data.roles
-        // Filter roles to only show roles below current user's level
         const currentUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
-        const rolesArray = response.data.data.roles || [];
+        const rolesArray = response.data.data || [];
         const filteredRoles = rolesArray.filter(role =>
-          role.level < currentUser.role?.level
+          role.level < (currentUser.role?.level ?? 0)
         );
         setRoles(filteredRoles);
       }
@@ -140,13 +138,13 @@ export const CreateUserDialog = ({ isOpen, onClose, onUserCreated }) => {
     try {
       setLoading(true);
 
-      // Create user data - send roleId as ObjectId, not role name
+      // Create user data - backend expects roleId (user, moderator, admin)
       const userData = {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         email: formData.email.trim().toLowerCase(),
         username: formData.username.trim(),
-        ...(formData.roleId && { role: formData.roleId }), // Send ObjectId, not name
+        ...(formData.roleId && { roleId: formData.roleId }),
         ...(formData.password && { password: formData.password })
       };
 

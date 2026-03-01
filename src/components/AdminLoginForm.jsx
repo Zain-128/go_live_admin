@@ -38,10 +38,9 @@ export function AdminLoginForm({ onLoginSuccess }) {
       if (response.data.success) {
         const { user, tokens } = response.data.data;
 
-        // Check if user has admin privileges (check by role name)
-        const roleName = user.role?.name || user.role;
-        const hasLevelAccess = ['Admin', 'Super Admin', 'Moderator'].includes(roleName);
-        console.log('User access check:', { roleName, hasLevelAccess });
+        // Backend only allows admin/moderator to log in; optional client-side check by role name or level
+        const roleName = (user.role?.name || user.role || '').toUpperCase();
+        const hasLevelAccess = user.role?.level >= 3 || ['ADMIN', 'SUPER_ADMIN', 'MODERATOR', 'STAFF'].includes(roleName);
         if (!hasLevelAccess) {
           setError('Access denied. Admin dashboard access required.');
           setLoading(false);

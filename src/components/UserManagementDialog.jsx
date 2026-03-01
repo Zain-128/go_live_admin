@@ -92,10 +92,9 @@ export const UserManagementDialog = ({ isOpen, onClose, user, onUserUpdated }) =
   const fetchRoles = async () => {
     try {
       setRolesLoading(true);
-      const response = await api.get('/rbac/roles');
+      const response = await api.get('/admin/roles');
       if (response.data.success) {
-        // Backend returns roles nested in response.data.data.roles
-        setRoles(response.data.data.roles || []);
+        setRoles(response.data.data || []);
       }
     } catch (err) {
       console.error('Failed to fetch roles:', err);
@@ -492,10 +491,10 @@ export const UserManagementDialog = ({ isOpen, onClose, user, onUserUpdated }) =
                 <div className="flex items-start justify-between">
                   <div>
                     <h4 className="text-sm font-medium text-blue-800">
-                      Account Status
+                      Account Status / Block User
                     </h4>
                     <p className="text-sm text-blue-700 mt-1">
-                      Control whether the user can log in to the system
+                      Inactive = user is blocked and cannot log in. Toggle to block or unblock.
                     </p>
                   </div>
                   <div className="flex items-center space-x-3">

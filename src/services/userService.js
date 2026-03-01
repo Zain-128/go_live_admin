@@ -27,5 +27,24 @@ export const userService = {
   async updateUser(id, userData) {
     const response = await api.put(`/admin/users/${id}`, userData);
     return response.data.data; // Unwrap to return inner data object
+  },
+
+  async resetPassword(id) {
+    const response = await api.patch(`/admin/users/${id}/reset-password`);
+    return response.data.data;
+  },
+
+  async deleteUser(id) {
+    await api.delete(`/admin/users/${id}`);
+  },
+
+  async blockUser(id) {
+    const response = await api.patch(`/admin/users/${id}/block`);
+    return response.data.data;
+  },
+
+  async unblockUser(id) {
+    const response = await api.patch(`/admin/users/${id}/unblock`);
+    return response.data.data;
   }
 };

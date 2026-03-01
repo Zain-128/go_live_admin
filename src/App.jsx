@@ -18,7 +18,7 @@ import OrderManagement from './pages/OrderManagement';
 import ReviewManagement from './pages/ReviewManagement';
 import PayoutManagement from './pages/PayoutManagement';
 
-// Simplified auth check based on role level only
+// Auth check: token + user with admin/moderator level (level >= 3 or role name)
 const isAuthenticated = () => {
   const token = localStorage.getItem('adminAccessToken');
   const user = localStorage.getItem('adminUser');
@@ -27,9 +27,9 @@ const isAuthenticated = () => {
 
   try {
     const userData = JSON.parse(user);
-    // Check if user has admin privileges (check by role name)
-    const roleName = userData.role?.name || userData.role;
-    return ['Admin', 'Super Admin', 'Moderator'].includes(roleName);
+    const roleName = (userData.role?.name || userData.role || '').toString().toUpperCase();
+    const level = userData.role?.level;
+    return level >= 3 || ['ADMIN', 'SUPER_ADMIN', 'MODERATOR', 'STAFF'].includes(roleName);
   } catch {
     return false;
   }
