@@ -62,76 +62,76 @@ const AdminLayout = ({ children, user, onLogout }) => {
       href: '/users',
       icon: Users,
     },
-    {
-      name: 'QR Codes',
-      href: '/qr-codes',
-      icon: QrCode,
-    },
-    {
-      name: 'Ecommerce',
-      icon: ShoppingCart,
-      isGroup: true,
-      groupKey: 'ecommerce',
-      children: [
-        {
-          name: 'Vendors',
-          href: '/vendors',
-          icon: Store,
-        },
-        {
-          name: 'Products',
-          href: '/products',
-          icon: ShoppingBag,
-        },
-        {
-          name: 'Categories',
-          href: '/categories',
-          icon: Tags,
-        },
-        {
-          name: 'Orders',
-          href: '/orders',
-          icon: ClipboardList,
-        },
-        {
-          name: 'Reviews',
-          href: '/reviews',
-          icon: Star,
-        },
-        {
-          name: 'Payouts',
-          href: '/payouts',
-          icon: Wallet,
-        },
-      ],
-    },
-    {
-      name: 'Subscriptions',
-      icon: Layers,
-      isGroup: true,
-      children: [
-        {
-          name: 'Packages',
-          href: '/packages',
-          icon: Package,
-        },
-        {
-          name: 'Subscriptions',
-          href: '/subscriptions',
-          icon: CreditCard,
-        },
-        {
-          name: 'Analytics',
-          href: '/subscription-stats',
-          icon: BarChart3,
-        },
-      ],
-    },
-    {
-      name: 'Settings',
-      href: '/settings',
-      icon: Settings,
-    },
+    // {
+    //   name: 'QR Codes',
+    //   href: '/qr-codes',
+    //   icon: QrCode,
+    // },
+    // {
+    //   name: 'Ecommerce',
+    //   icon: ShoppingCart,
+    //   isGroup: true,
+    //   groupKey: 'ecommerce',
+    //   children: [
+    //     {
+    //       name: 'Vendors',
+    //       href: '/vendors',
+    //       icon: Store,
+    //     },
+    //     {
+    //       name: 'Products',
+    //       href: '/products',
+    //       icon: ShoppingBag,
+    //     },
+    //     {
+    //       name: 'Categories',
+    //       href: '/categories',
+    //       icon: Tags,
+    //     },
+    //     {
+    //       name: 'Orders',
+    //       href: '/orders',
+    //       icon: ClipboardList,
+    //     },
+    //     {
+    //       name: 'Reviews',
+    //       href: '/reviews',
+    //       icon: Star,
+    //     },
+    //     {
+    //       name: 'Payouts',
+    //       href: '/payouts',
+    //       icon: Wallet,
+    //     },
+    //   ],
+    // },
+    // {
+    //   name: 'Subscriptions',
+    //   icon: Layers,
+    //   isGroup: true,
+    //   children: [
+    //     {
+    //       name: 'Packages',
+    //       href: '/packages',
+    //       icon: Package,
+    //     },
+    //     {
+    //       name: 'Subscriptions',
+    //       href: '/subscriptions',
+    //       icon: CreditCard,
+    //     },
+    //     {
+    //       name: 'Analytics',
+    //       href: '/subscription-stats',
+    //       icon: BarChart3,
+    //     },
+    //   ],
+    // },
+    // {
+    //   name: 'Settings',
+    //   href: '/settings',
+    //   icon: Settings,
+    // },
   ];
 
   const handleLogout = () => {

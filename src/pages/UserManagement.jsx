@@ -23,7 +23,8 @@ import {
   CheckCircle,
   XCircle,
   Eye,
-  UserPlus
+  UserPlus,
+  Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -222,7 +223,7 @@ const UserManagement = () => {
                 Search and filter users by role, name, or email
               </CardDescription>
             </div>
-            {canCreateUsers() && (
+            {/* {canCreateUsers() && (
               <Button
                 onClick={() => setCreateUserDialogOpen(true)}
                 className="flex items-center gap-2"
@@ -230,7 +231,7 @@ const UserManagement = () => {
                 <UserPlus className="h-4 w-4" />
                 Create User
               </Button>
-            )}
+            )} */}
           </div>
         </CardHeader>
         <CardContent>
@@ -289,7 +290,7 @@ const UserManagement = () => {
                   <TableHead>Role</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Joined</TableHead>
-                  <TableHead>Last Login</TableHead>
+                  <TableHead>Delete User</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -338,10 +339,9 @@ const UserManagement = () => {
                       {new Date(user.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-sm text-gray-500">
-                      {user.lastLogin
-                        ? new Date(user.lastLogin).toLocaleDateString()
-                        : 'Never'
-                      }
+                      <button>
+                        <Trash2 color='red' size={20} />
+                      </button>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
