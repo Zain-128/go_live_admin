@@ -17,6 +17,8 @@ import CategoryManagement from './pages/CategoryManagement';
 import OrderManagement from './pages/OrderManagement';
 import ReviewManagement from './pages/ReviewManagement';
 import PayoutManagement from './pages/PayoutManagement';
+import ReportedUsers from './pages/ReportedUsers';
+import ReportedPosts from './pages/ReportedPosts';
 
 // Auth check: token + user with admin/moderator level (level >= 3 or role name)
 const isAuthenticated = () => {
@@ -206,6 +208,28 @@ function App() {
               <ProtectedRoute>
                 <AdminLayout user={user} onLogout={handleLogout}>
                   <PayoutManagement />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/reported-users"
+            element={
+              <ProtectedRoute>
+                <AdminLayout user={user} onLogout={handleLogout}>
+                  <ReportedUsers />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/reported-posts"
+            element={
+              <ProtectedRoute>
+                <AdminLayout user={user} onLogout={handleLogout}>
+                  <ReportedPosts />
                 </AdminLayout>
               </ProtectedRoute>
             }

@@ -23,7 +23,9 @@ import {
   Tags,
   ClipboardList,
   Star,
-  Wallet
+  Wallet,
+  Flag,
+  FileWarning,
 } from 'lucide-react';
 
 const AdminLayout = ({ children, user, onLogout }) => {
@@ -61,6 +63,16 @@ const AdminLayout = ({ children, user, onLogout }) => {
       name: 'User Management',
       href: '/users',
       icon: Users,
+    },
+    {
+      name: 'Reported Users',
+      href: '/reported-users',
+      icon: Flag,
+    },
+    {
+      name: 'Reported Posts',
+      href: '/reported-posts',
+      icon: FileWarning,
     },
     // {
     //   name: 'QR Codes',
