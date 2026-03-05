@@ -136,7 +136,7 @@ export function AdminLoginForm({ onLoginSuccess }) {
         <CardContent className="pt-6">
           <h4 className="font-semibold text-blue-800 mb-3">Demo Credentials:</h4>
           <div className="text-sm text-blue-700 space-y-2">
-            <p><strong>Super Admin:</strong> admin@example.com / Admin123!</p>
+            <p><strong>Super Admin:</strong> admin@example.com / Abcd@1234</p>
             <p><strong>Staff:</strong> staff1@example.com / Staff123!</p>
           </div>
         </CardContent>
