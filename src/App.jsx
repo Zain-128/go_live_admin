@@ -19,6 +19,7 @@ import ReviewManagement from './pages/ReviewManagement';
 import PayoutManagement from './pages/PayoutManagement';
 import ReportedUsers from './pages/ReportedUsers';
 import ReportedPosts from './pages/ReportedPosts';
+import CashOutRequests from './pages/CashOutRequests';
 
 // Auth check: token + user with admin/moderator level (level >= 3 or role name)
 const isAuthenticated = () => {
@@ -230,6 +231,17 @@ function App() {
               <ProtectedRoute>
                 <AdminLayout user={user} onLogout={handleLogout}>
                   <ReportedPosts />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/cashout-requests"
+            element={
+              <ProtectedRoute>
+                <AdminLayout user={user} onLogout={handleLogout}>
+                  <CashOutRequests />
                 </AdminLayout>
               </ProtectedRoute>
             }

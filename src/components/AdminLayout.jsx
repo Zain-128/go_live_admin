@@ -74,6 +74,11 @@ const AdminLayout = ({ children, user, onLogout }) => {
       href: '/reported-posts',
       icon: FileWarning,
     },
+    {
+      name: 'Cash out',
+      href: '/cashout-requests',
+      icon: Wallet,
+    },
     // {
     //   name: 'QR Codes',
     //   href: '/qr-codes',
