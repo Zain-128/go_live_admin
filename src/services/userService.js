@@ -38,8 +38,8 @@ export const userService = {
     await api.delete(`/admin/users/${id}`);
   },
 
-  async blockUser(id) {
-    const response = await api.patch(`/admin/users/${id}/block`);
+  async blockUser(id, options = {}) {
+    const response = await api.patch(`/admin/users/${id}/block`, options);
     return response.data.data;
   },
 

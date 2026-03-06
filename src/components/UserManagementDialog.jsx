@@ -29,7 +29,15 @@ import {
   X
 } from 'lucide-react';
 import api from '../services/api';
+import { userService } from '../services/userService';
 import { toast } from 'sonner';
+
+const BAN_OPTIONS = [
+  { label: '1 day', value: 1 },
+  { label: '7 days', value: 7 },
+  { label: '30 days', value: 30 },
+  { label: 'Permanent', permanent: true },
+];
 
 export const UserManagementDialog = ({ isOpen, onClose, user, onUserUpdated }) => {
   // Form state for editing
@@ -57,6 +65,10 @@ export const UserManagementDialog = ({ isOpen, onClose, user, onUserUpdated }) =
   // Delete confirmation state
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Ban options (when blocking user)
+  const [showBanOptions, setShowBanOptions] = useState(false);
+  const [banLoading, setBanLoading] = useState(false);
 
   // Check if current user can manage the target user
   const canManageUser = () => {
@@ -141,37 +153,44 @@ export const UserManagementDialog = ({ isOpen, onClose, user, onUserUpdated }) =
   const handleStatusToggle = async (checked) => {
     if (!user?._id) return;
 
-    // Store previous value for rollback
     const previousValue = formData.isActive;
 
-    // Optimistic update - update UI immediately
-    setFormData(prev => ({ ...prev, isActive: checked }));
-    setLoading(true);
-
-    try {
-      const updateData = {
-        ...formData,
-        isActive: checked
-      };
-
-      const response = await api.put(`/admin/users/${user._id}`, updateData);
-
-      if (response.data.success) {
-        // Success - update parent component
-        onUserUpdated(response.data.data);
-        toast.success(`User ${checked ? 'activated' : 'deactivated'} successfully!`);
-      } else {
-        // Rollback on failure
+    if (checked) {
+      // Unblock
+      setFormData(prev => ({ ...prev, isActive: true }));
+      setLoading(true);
+      try {
+        const updated = await userService.unblockUser(user._id);
+        onUserUpdated(updated);
+        toast.success('User unblocked successfully!');
+      } catch (err) {
         setFormData(prev => ({ ...prev, isActive: previousValue }));
-        toast.error('Failed to update user status');
+        toast.error(err.response?.data?.message || 'Failed to unblock user');
+      } finally {
+        setLoading(false);
       }
+      return;
+    }
+
+    // Block: show ban duration options
+    setShowBanOptions(true);
+  };
+
+  const handleConfirmBan = async (option) => {
+    if (!user?._id) return;
+    setBanLoading(true);
+    const previousValue = formData.isActive;
+    try {
+      const body = option.permanent ? { permanent: true } : { durationDays: option.value };
+      const updated = await userService.blockUser(user._id, body);
+      setFormData(prev => ({ ...prev, isActive: false }));
+      setShowBanOptions(false);
+      onUserUpdated(updated);
+      toast.success(option.permanent ? 'User permanently banned.' : `User banned for ${option.label}.`);
     } catch (err) {
-      console.error('Failed to update user status:', err);
-      // Rollback on error
-      setFormData(prev => ({ ...prev, isActive: previousValue }));
-      toast.error('Failed to update user status');
+      toast.error(err.response?.data?.message || 'Failed to ban user');
     } finally {
-      setLoading(false);
+      setBanLoading(false);
     }
   };
 
@@ -491,17 +510,17 @@ export const UserManagementDialog = ({ isOpen, onClose, user, onUserUpdated }) =
                 <div className="flex items-start justify-between">
                   <div>
                     <h4 className="text-sm font-medium text-blue-800">
-                      Account Status / Block User
+                      Account Status / Ban User
                     </h4>
                     <p className="text-sm text-blue-700 mt-1">
-                      Inactive = user is blocked and cannot log in. Toggle to block or unblock.
+                      Inactive = user is banned and cannot log in. Toggle off to choose ban duration (custom time or permanent).
                     </p>
                   </div>
                   <div className="flex items-center space-x-3">
                     <span className={`text-sm font-medium ${
                       formData.isActive ? 'text-green-700' : 'text-red-700'
                     }`}>
-                      {formData.isActive ? 'Active' : 'Inactive'}
+                      {formData.isActive ? 'Active' : 'Banned'}
                     </span>
                     <Switch
                       checked={formData.isActive}
@@ -511,6 +530,37 @@ export const UserManagementDialog = ({ isOpen, onClose, user, onUserUpdated }) =
                   </div>
                 </div>
               </div>
+
+              {/* Ban duration modal */}
+              <Dialog open={showBanOptions} onOpenChange={(open) => !banLoading && setShowBanOptions(open)}>
+                <DialogContent className="sm:max-w-sm">
+                  <DialogHeader>
+                    <DialogTitle>Ban duration</DialogTitle>
+                  </DialogHeader>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Select how long to ban this user. They will not be able to log in until the ban expires or you unblock.
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {BAN_OPTIONS.map((opt) => (
+                      <Button
+                        key={opt.permanent ? 'permanent' : opt.value}
+                        variant="outline"
+                        className="justify-start"
+                        onClick={() => handleConfirmBan(opt)}
+                        disabled={banLoading}
+                      >
+                        {banLoading ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : null}
+                        {opt.label}
+                      </Button>
+                    ))}
+                  </div>
+                  <Button variant="ghost" onClick={() => setShowBanOptions(false)} disabled={banLoading}>
+                    Cancel
+                  </Button>
+                </DialogContent>
+              </Dialog>
             {/* Reset Password Section */}
             <div className="border border-yellow-200 rounded-lg p-4 bg-yellow-50">
               <div className="flex items-start space-x-3">
