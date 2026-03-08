@@ -76,9 +76,14 @@ const AdminLayout = ({ children, user, onLogout }) => {
       icon: FileWarning,
     },
     {
-      name: 'Cash out',
+      name: 'Cash out management',
       href: '/cashout-requests',
       icon: Wallet,
+    },
+    {
+      name: 'Cash out email change',
+      href: '/cashout-email-change',
+      icon: ClipboardList,
     },
     {
       name: 'Stickers',

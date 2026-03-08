@@ -247,6 +247,16 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/cashout-email-change"
+            element={
+              <ProtectedRoute>
+                <AdminLayout user={user} onLogout={handleLogout}>
+                  <CashOutRequests />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             path="/stickers"

@@ -36,6 +36,7 @@ const BAN_OPTIONS = [
   { label: '1 day', value: 1 },
   { label: '7 days', value: 7 },
   { label: '30 days', value: 30 },
+  { label: 'Custom (enter days)', custom: true },
   { label: 'Permanent', permanent: true },
 ];
 
@@ -69,6 +70,8 @@ export const UserManagementDialog = ({ isOpen, onClose, user, onUserUpdated }) =
   // Ban options (when blocking user)
   const [showBanOptions, setShowBanOptions] = useState(false);
   const [banLoading, setBanLoading] = useState(false);
+  const [customBanDays, setCustomBanDays] = useState('');
+  const [showCustomBanInput, setShowCustomBanInput] = useState(false);
 
   // Check if current user can manage the target user
   const canManageUser = () => {
@@ -177,16 +180,43 @@ export const UserManagementDialog = ({ isOpen, onClose, user, onUserUpdated }) =
   };
 
   const handleConfirmBan = async (option) => {
+    if (option.custom) {
+      setShowCustomBanInput(true);
+      return;
+    }
     if (!user?._id) return;
     setBanLoading(true);
-    const previousValue = formData.isActive;
     try {
       const body = option.permanent ? { permanent: true } : { durationDays: option.value };
       const updated = await userService.blockUser(user._id, body);
       setFormData(prev => ({ ...prev, isActive: false }));
       setShowBanOptions(false);
+      setShowCustomBanInput(false);
+      setCustomBanDays('');
       onUserUpdated(updated);
       toast.success(option.permanent ? 'User permanently banned.' : `User banned for ${option.label}.`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to ban user');
+    } finally {
+      setBanLoading(false);
+    }
+  };
+
+  const handleCustomBanSubmit = async () => {
+    const days = parseInt(customBanDays, 10);
+    if (!user?._id || !Number.isFinite(days) || days < 1) {
+      toast.error('Enter a valid number of days (1 or more).');
+      return;
+    }
+    setBanLoading(true);
+    try {
+      const updated = await userService.blockUser(user._id, { durationDays: days });
+      setFormData(prev => ({ ...prev, isActive: false }));
+      setShowBanOptions(false);
+      setShowCustomBanInput(false);
+      setCustomBanDays('');
+      onUserUpdated(updated);
+      toast.success(`User banned for ${days} days.`);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to ban user');
     } finally {
@@ -532,7 +562,12 @@ export const UserManagementDialog = ({ isOpen, onClose, user, onUserUpdated }) =
               </div>
 
               {/* Ban duration modal */}
-              <Dialog open={showBanOptions} onOpenChange={(open) => !banLoading && setShowBanOptions(open)}>
+              <Dialog open={showBanOptions} onOpenChange={(open) => {
+                if (!banLoading) {
+                  setShowBanOptions(open);
+                  if (!open) setShowCustomBanInput(false);
+                }
+              }}>
                 <DialogContent className="sm:max-w-sm">
                   <DialogHeader>
                     <DialogTitle>Ban duration</DialogTitle>
@@ -540,25 +575,50 @@ export const UserManagementDialog = ({ isOpen, onClose, user, onUserUpdated }) =
                   <p className="text-sm text-muted-foreground mb-4">
                     Select how long to ban this user. They will not be able to log in until the ban expires or you unblock.
                   </p>
-                  <div className="flex flex-col gap-2">
-                    {BAN_OPTIONS.map((opt) => (
-                      <Button
-                        key={opt.permanent ? 'permanent' : opt.value}
-                        variant="outline"
-                        className="justify-start"
-                        onClick={() => handleConfirmBan(opt)}
+                  {showCustomBanInput ? (
+                    <div className="flex flex-col gap-3">
+                      <Label>Number of days</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        placeholder="e.g. 14"
+                        value={customBanDays}
+                        onChange={(e) => setCustomBanDays(e.target.value)}
                         disabled={banLoading}
-                      >
-                        {banLoading ? (
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        ) : null}
-                        {opt.label}
+                      />
+                      <div className="flex gap-2">
+                        <Button onClick={handleCustomBanSubmit} disabled={banLoading || !customBanDays.trim()}>
+                          {banLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                          Apply
+                        </Button>
+                        <Button variant="ghost" onClick={() => setShowCustomBanInput(false)} disabled={banLoading}>
+                          Back
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex flex-col gap-2">
+                        {BAN_OPTIONS.map((opt) => (
+                          <Button
+                            key={opt.permanent ? 'permanent' : opt.custom ? 'custom' : opt.value}
+                            variant="outline"
+                            className="justify-start"
+                            onClick={() => handleConfirmBan(opt)}
+                            disabled={banLoading}
+                          >
+                            {banLoading && !opt.custom ? (
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : null}
+                            {opt.label}
+                          </Button>
+                        ))}
+                      </div>
+                      <Button variant="ghost" onClick={() => setShowBanOptions(false)} disabled={banLoading}>
+                        Cancel
                       </Button>
-                    ))}
-                  </div>
-                  <Button variant="ghost" onClick={() => setShowBanOptions(false)} disabled={banLoading}>
-                    Cancel
-                  </Button>
+                    </>
+                  )}
                 </DialogContent>
               </Dialog>
             {/* Reset Password Section */}
