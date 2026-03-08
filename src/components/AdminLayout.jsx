@@ -26,6 +26,7 @@ import {
   Wallet,
   Flag,
   FileWarning,
+  Gift,
 } from 'lucide-react';
 
 const AdminLayout = ({ children, user, onLogout }) => {
@@ -78,6 +79,11 @@ const AdminLayout = ({ children, user, onLogout }) => {
       name: 'Cash out',
       href: '/cashout-requests',
       icon: Wallet,
+    },
+    {
+      name: 'Stickers',
+      href: '/stickers',
+      icon: Gift,
     },
     // {
     //   name: 'QR Codes',

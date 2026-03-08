@@ -20,6 +20,7 @@ import PayoutManagement from './pages/PayoutManagement';
 import ReportedUsers from './pages/ReportedUsers';
 import ReportedPosts from './pages/ReportedPosts';
 import CashOutRequests from './pages/CashOutRequests';
+import StickerManagement from './pages/StickerManagement';
 
 // Auth check: token + user with admin/moderator level (level >= 3 or role name)
 const isAuthenticated = () => {
@@ -242,6 +243,17 @@ function App() {
               <ProtectedRoute>
                 <AdminLayout user={user} onLogout={handleLogout}>
                   <CashOutRequests />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/stickers"
+            element={
+              <ProtectedRoute>
+                <AdminLayout user={user} onLogout={handleLogout}>
+                  <StickerManagement />
                 </AdminLayout>
               </ProtectedRoute>
             }
