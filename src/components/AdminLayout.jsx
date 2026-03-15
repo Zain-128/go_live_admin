@@ -86,8 +86,8 @@ const AdminLayout = ({ children, user, onLogout }) => {
       icon: ClipboardList,
     },
     {
-      name: 'Stickers',
-      href: '/stickers',
+      name: 'Gifts',
+      href: '/gifts',
       icon: Gift,
     },
     // {
