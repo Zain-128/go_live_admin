@@ -27,6 +27,8 @@ import {
   Flag,
   FileWarning,
   Gift,
+  DollarSign,
+  ArrowDownToLine,
 } from 'lucide-react';
 
 const AdminLayout = ({ children, user, onLogout }) => {
@@ -75,16 +77,26 @@ const AdminLayout = ({ children, user, onLogout }) => {
       href: '/reported-posts',
       icon: FileWarning,
     },
+    // {
+    //   name: 'Cash out management',
+    //   href: '/cashout-requests',
+    //   icon: Wallet,
+    // },
     {
-      name: 'Cash out management',
-      href: '/cashout-requests',
-      icon: Wallet,
+      name: 'Withdraw Requests',
+      href: '/withdraw-requests',
+      icon: ArrowDownToLine,
     },
     {
       name: 'Cash out email change',
       href: '/cashout-email-change',
       icon: ClipboardList,
     },
+    // {
+    //   name: 'Cashout Options',
+    //   href: '/cashout-options',
+    //   icon: DollarSign,
+    // },
     {
       name: 'Gifts',
       href: '/gifts',
