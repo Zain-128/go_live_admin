@@ -29,6 +29,7 @@ import {
   Gift,
   DollarSign,
   ArrowDownToLine,
+  Sparkles,
 } from 'lucide-react';
 
 const AdminLayout = ({ children, user, onLogout }) => {
@@ -66,6 +67,11 @@ const AdminLayout = ({ children, user, onLogout }) => {
       name: 'User Management',
       href: '/users',
       icon: Users,
+    },
+    {
+      name: 'Sponsored creators',
+      href: '/sponsored-creators',
+      icon: Sparkles,
     },
     {
       name: 'Reported Users',
