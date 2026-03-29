@@ -11,9 +11,15 @@ export const giftService = {
   async uploadImage(file) {
     const formData = new FormData();
     formData.append('file', file);
-    const { data } = await api.post(`${BASE}/upload-image`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const { data } = await api.post(`${BASE}/upload-image`, formData);
+    return data?.data ?? { url: null, previewUrl: null };
+  },
+
+  /** Lottie JSON (.json) or GIF / WebP / PNG / JPEG — same URL stored as gift.animationUrl */
+  async uploadAnimation(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const { data } = await api.post(`${BASE}/upload-animation`, formData);
     return data?.data ?? { url: null, previewUrl: null };
   },
 

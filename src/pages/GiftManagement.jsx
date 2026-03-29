@@ -22,7 +22,7 @@ import {
   DialogTitle,
 } from '../components/ui/dialog';
 import { ConfirmationDialog } from '../components/ConfirmationDialog';
-import { Gift, Plus, Pencil, Trash2, Image as ImageIcon, Upload } from 'lucide-react';
+import { Gift, Plus, Pencil, Trash2, Image as ImageIcon, Upload, Clapperboard } from 'lucide-react';
 import { toast } from 'sonner';
 
 const emptyGift = {
@@ -33,6 +33,15 @@ const emptyGift = {
   displayOrder: 0,
   isActive: true,
 };
+
+/** Table / picker preview: icon first; else static animation (GIF/WebP/PNG), not Lottie JSON. */
+function giftStripPreviewSrc(g) {
+  const icon = g?.iconUrl?.trim();
+  if (icon) return icon;
+  const anim = g?.animationUrl?.trim();
+  if (anim && !/\.json($|\?)/i.test(anim)) return anim;
+  return null;
+}
 
 const GiftManagement = () => {
   const [gifts, setGifts] = useState([]);
@@ -46,6 +55,9 @@ const GiftManagement = () => {
   const [uploadingIcon, setUploadingIcon] = useState(false);
   const [iconPreviewUrl, setIconPreviewUrl] = useState('');
   const iconFileRef = React.useRef(null);
+  const [uploadingAnimation, setUploadingAnimation] = useState(false);
+  const [animationPreviewUrl, setAnimationPreviewUrl] = useState('');
+  const animationFileRef = React.useRef(null);
 
   const fetchGifts = async () => {
     try {
@@ -69,6 +81,7 @@ const GiftManagement = () => {
     setEditingGift(null);
     setForm({ ...emptyGift });
     setIconPreviewUrl('');
+    setAnimationPreviewUrl('');
     setDialogOpen(true);
   };
 
@@ -83,6 +96,7 @@ const GiftManagement = () => {
       isActive: gift.isActive !== false,
     });
     setIconPreviewUrl(gift.iconUrl ?? '');
+    setAnimationPreviewUrl(gift.animationUrl ?? '');
     setDialogOpen(true);
   };
 
@@ -91,6 +105,7 @@ const GiftManagement = () => {
     setEditingGift(null);
     setForm({ ...emptyGift });
     setIconPreviewUrl('');
+    setAnimationPreviewUrl('');
   };
 
   const handleSubmit = async (e) => {
@@ -105,13 +120,19 @@ const GiftManagement = () => {
       toast.error('Coin value must be a non-negative number');
       return;
     }
+    const iconT = form.iconUrl?.trim() || '';
+    const animT = form.animationUrl?.trim() || '';
+    if (!iconT && !animT) {
+      toast.error('Upload a send animation and/or an icon image — viewers need at least one to see the gift.');
+      return;
+    }
     try {
       setSubmitting(true);
       const body = {
         name,
         coinValue,
-        iconUrl: form.iconUrl?.trim() || undefined,
-        animationUrl: form.animationUrl?.trim() || undefined,
+        iconUrl: iconT || undefined,
+        animationUrl: animT || undefined,
         displayOrder: Number(form.displayOrder) || 0,
         isActive: form.isActive,
       };
@@ -156,6 +177,32 @@ const GiftManagement = () => {
     }
   };
 
+  const handleUploadAnimation = async (e) => {
+    const file = e?.target?.files?.[0];
+    if (!file) return;
+    const name = file.name?.toLowerCase() ?? '';
+    const okExt = /\.(json|gif|webp|png|jpe?g)$/i.test(name);
+    if (!okExt) {
+      toast.error('Use .json (Lottie) or an image: .gif, .webp, .png, .jpg');
+      return;
+    }
+    try {
+      setUploadingAnimation(true);
+      const result = await giftService.uploadAnimation(file);
+      const url = result?.url ?? result;
+      if (url) {
+        setForm((f) => ({ ...f, animationUrl: url }));
+        setAnimationPreviewUrl(result?.previewUrl || url);
+        toast.success('Animation uploaded — viewers will see it when this gift is sent');
+      } else toast.error('Upload failed');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Upload failed');
+    } finally {
+      setUploadingAnimation(false);
+      if (animationFileRef.current) animationFileRef.current.value = '';
+    }
+  };
+
   const handleDeleteConfirm = async () => {
     if (!deleteTarget?._id) return;
     try {
@@ -181,7 +228,7 @@ const GiftManagement = () => {
               Live stream gifts
             </CardTitle>
             <CardDescription>
-              Create and manage virtual gifts shown in live streams. These are the same gifts viewers send; coin value and rubies (55%) are applied when a stream ends.
+              <strong>Send animation</strong> (Lottie or GIF) is what plays on the live screen when someone sends this gift. Optional <strong>icon</strong> is a small image in the gift strip; if you only upload an animation, the app uses it everywhere.
             </CardDescription>
           </div>
           <Button onClick={openCreate}>
@@ -201,6 +248,7 @@ const GiftManagement = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[60px]">Icon</TableHead>
+                  <TableHead className="w-[60px]">Animation</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Coins</TableHead>
                   <TableHead>Rubies</TableHead>
@@ -213,19 +261,42 @@ const GiftManagement = () => {
                 {gifts.map((g) => (
                   <TableRow key={g._id}>
                     <TableCell>
-                      <div className="h-10 w-10 rounded border flex items-center justify-center bg-muted overflow-hidden relative">
-                        {g.iconUrl && (
+                      <div className="h-10 w-10 rounded border flex items-center justify-center bg-muted overflow-hidden">
+                        {giftStripPreviewSrc(g) ? (
                           <img
-                            src={g.iconUrl}
+                            src={giftStripPreviewSrc(g)}
                             alt=""
-                            className="h-full w-full object-cover absolute inset-0"
+                            className="h-full w-full object-cover"
                             onError={(e) => {
                               e.target.onerror = null;
                               e.target.style.display = 'none';
                             }}
                           />
+                        ) : (
+                          <ImageIcon className="h-5 w-5 text-muted-foreground" />
                         )}
-                        <ImageIcon className="h-5 w-5 text-muted-foreground relative z-0" />
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div
+                        className="h-10 w-10 rounded border flex items-center justify-center bg-muted overflow-hidden text-[10px] text-muted-foreground"
+                        title={g.animationUrl || ''}
+                      >
+                        {g.animationUrl && /\.json($|\?)/i.test(g.animationUrl) ? (
+                          <span className="px-1 text-center leading-tight">Lottie</span>
+                        ) : g.animationUrl ? (
+                          <img
+                            src={g.animationUrl}
+                            alt=""
+                            className="h-full w-full object-contain"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <span className="opacity-50">—</span>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="font-medium">{g.name}</TableCell>
@@ -265,13 +336,13 @@ const GiftManagement = () => {
 
       {/* Create / Edit dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => !open && closeDialog()}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingGift ? 'Edit gift' : 'Add gift'}</DialogTitle>
             <DialogDescription>
               {editingGift
-                ? 'Update the gift details below.'
-                : 'Create a new gift for live streams. Viewers will see this in the gift panel.'}
+                ? 'Same files are used in the app: send animation on stream, icon (optional) in the gift row.'
+                : 'At minimum, upload a send animation (or an icon). That animation is what viewers see on screen when they send this gift.'}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -300,7 +371,66 @@ const GiftManagement = () => {
               <p className="text-xs text-muted-foreground">Streamer earns 55% of coins as rubies when the stream ends.</p>
             </div>
             <div className="space-y-2">
-              <Label>Icon image</Label>
+              <Label className="flex items-center gap-2">
+                <Clapperboard className="h-4 w-4" />
+                Send animation
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Plays on the live stream when a viewer sends this gift (Lottie .json or GIF / WebP / PNG). You must set at least this or an icon below.
+              </p>
+              <div className="flex items-center gap-3 flex-wrap">
+                <input
+                  ref={animationFileRef}
+                  type="file"
+                  accept=".json,application/json,image/gif,image/webp,image/png,image/jpeg"
+                  className="hidden"
+                  onChange={handleUploadAnimation}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={uploadingAnimation}
+                  onClick={() => animationFileRef.current?.click()}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  {uploadingAnimation ? 'Uploading…' : 'Upload animation'}
+                </Button>
+                {(animationPreviewUrl || form.animationUrl) &&
+                /\.json($|[?#&])/i.test((form.animationUrl || animationPreviewUrl || '').trim()) ? (
+                  <span
+                    className="text-xs text-muted-foreground max-w-[200px] truncate"
+                    title={form.animationUrl || animationPreviewUrl}
+                  >
+                    Lottie JSON linked (plays on viewer app)
+                  </span>
+                ) : (animationPreviewUrl || form.animationUrl) ? (
+                  <div className="h-14 w-14 rounded border overflow-hidden bg-muted flex-shrink-0">
+                    <img
+                      src={animationPreviewUrl || form.animationUrl}
+                      alt=""
+                      className="h-full w-full object-contain"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                ) : null}
+              </div>
+              <Input
+                id="animationUrl"
+                type="url"
+                value={form.animationUrl}
+                onChange={(e) => setForm((f) => ({ ...f, animationUrl: e.target.value }))}
+                placeholder="Or paste animation URL (Lottie .json or image URL)"
+                className="mt-1"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Icon image (optional)</Label>
+              <p className="text-xs text-muted-foreground">
+                Small thumbnail in the gift strip. If you skip this, the app uses your animation (GIF/WebP) as the thumbnail; Lottie-only gifts show a default until you add a PNG/GIF icon.
+              </p>
               <div className="flex items-center gap-3 flex-wrap">
                 <input
                   ref={iconFileRef}
@@ -317,8 +447,18 @@ const GiftManagement = () => {
                   onClick={() => iconFileRef.current?.click()}
                 >
                   <Upload className="h-4 w-4 mr-2" />
-                  {uploadingIcon ? 'Uploading...' : 'Upload picture'}
+                  {uploadingIcon ? 'Uploading...' : 'Upload icon'}
                 </Button>
+                {form.animationUrl?.trim() && !form.iconUrl?.trim() && /\.(gif|webp|png|jpe?g)($|\?)/i.test(form.animationUrl) && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setForm((f) => ({ ...f, iconUrl: f.animationUrl?.trim() || '' }))}
+                  >
+                    Use animation as icon
+                  </Button>
+                )}
                 {(iconPreviewUrl || form.iconUrl) && (
                   <div className="h-12 w-12 rounded border overflow-hidden bg-muted flex-shrink-0">
                     <img src={iconPreviewUrl || form.iconUrl} alt="" className="h-full w-full object-cover" />
@@ -335,16 +475,6 @@ const GiftManagement = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="animationUrl">Animation URL</Label>
-              <Input
-                id="animationUrl"
-                type="url"
-                value={form.animationUrl}
-                onChange={(e) => setForm((f) => ({ ...f, animationUrl: e.target.value }))}
-                placeholder="Optional: URL for gift animation (e.g. Lottie)"
-              />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="displayOrder">Display order</Label>
               <Input
                 id="displayOrder"
@@ -354,18 +484,16 @@ const GiftManagement = () => {
                 onChange={(e) => setForm((f) => ({ ...f, displayOrder: e.target.value }))}
               />
             </div>
-            {editingGift && (
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="isActive"
-                  checked={form.isActive}
-                  onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
-                  className="rounded border-input"
-                />
-                <Label htmlFor="isActive" className="cursor-pointer">Active</Label>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="isActive"
+                checked={form.isActive}
+                onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
+                className="rounded border-input"
+              />
+              <Label htmlFor="isActive" className="cursor-pointer">Active (show in app gift list)</Label>
+            </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={closeDialog}>
                 Cancel

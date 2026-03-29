@@ -29,6 +29,15 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // Default Content-Type is application/json; for FormData the browser must set
+    // multipart/form-data with a boundary — otherwise multer sees no file (uploads fail silently or 400).
+    if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+      if (config.headers?.delete) {
+        config.headers.delete('Content-Type');
+      } else {
+        delete config.headers['Content-Type'];
+      }
+    }
     return config;
   },
   (error) => {
