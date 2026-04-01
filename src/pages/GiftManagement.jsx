@@ -25,9 +25,12 @@ import { ConfirmationDialog } from '../components/ConfirmationDialog';
 import { Gift, Plus, Pencil, Trash2, Image as ImageIcon, Upload, Clapperboard } from 'lucide-react';
 import { toast } from 'sonner';
 
+const GIFT_CATEGORIES = ["Popular", "Roses", "Special", "Guns", "New"];
+
 const emptyGift = {
   name: '',
   coinValue: '',
+  category: 'Popular',
   iconUrl: '',
   animationUrl: '',
   displayOrder: 0,
@@ -90,6 +93,7 @@ const GiftManagement = () => {
     setForm({
       name: gift.name ?? '',
       coinValue: gift.coinValue ?? '',
+      category: gift.category ?? 'Popular',
       iconUrl: gift.iconUrl ?? '',
       animationUrl: gift.animationUrl ?? '',
       displayOrder: gift.displayOrder ?? 0,
@@ -131,6 +135,7 @@ const GiftManagement = () => {
       const body = {
         name,
         coinValue,
+        category: form.category || 'Popular',
         iconUrl: iconT || undefined,
         animationUrl: animT || undefined,
         displayOrder: Number(form.displayOrder) || 0,
@@ -250,6 +255,7 @@ const GiftManagement = () => {
                   <TableHead className="w-[60px]">Icon</TableHead>
                   <TableHead className="w-[60px]">Animation</TableHead>
                   <TableHead>Name</TableHead>
+                  <TableHead>Category</TableHead>
                   <TableHead>Coins</TableHead>
                   <TableHead>Rubies</TableHead>
                   <TableHead>Order</TableHead>
@@ -300,6 +306,9 @@ const GiftManagement = () => {
                       </div>
                     </TableCell>
                     <TableCell className="font-medium">{g.name}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{g.category || 'Popular'}</Badge>
+                    </TableCell>
                     <TableCell>{g.coinValue}</TableCell>
                     <TableCell>{g.rubyValue ?? '—'}</TableCell>
                     <TableCell>{g.displayOrder ?? 0}</TableCell>
@@ -369,6 +378,23 @@ const GiftManagement = () => {
                 required
               />
               <p className="text-xs text-muted-foreground">Streamer earns 55% of coins as rubies when the stream ends.</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="category">Category *</Label>
+              <select
+                id="category"
+                value={form.category}
+                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                required
+              >
+                {GIFT_CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">Category determines how gifts are grouped in the app.</p>
             </div>
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
