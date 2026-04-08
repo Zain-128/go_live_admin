@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
 import {
   Table,
@@ -33,6 +34,8 @@ const emptyGift = {
   category: 'Popular',
   iconUrl: '',
   animationUrl: '',
+  /** Raw Lottie JSON (Bodymovin) — stored in MongoDB, no .json file upload. */
+  animationJson: '',
   displayOrder: 0,
   isActive: true,
 };
@@ -96,6 +99,7 @@ const GiftManagement = () => {
       category: gift.category ?? 'Popular',
       iconUrl: gift.iconUrl ?? '',
       animationUrl: gift.animationUrl ?? '',
+      animationJson: typeof gift.animationJson === 'string' ? gift.animationJson : '',
       displayOrder: gift.displayOrder ?? 0,
       isActive: gift.isActive !== false,
     });
@@ -126,8 +130,17 @@ const GiftManagement = () => {
     }
     const iconT = form.iconUrl?.trim() || '';
     const animT = form.animationUrl?.trim() || '';
-    if (!iconT && !animT) {
-      toast.error('Upload a send animation and/or an icon image — viewers need at least one to see the gift.');
+    const animJsonT = form.animationJson?.trim() || '';
+    if (animJsonT) {
+      try {
+        JSON.parse(animJsonT);
+      } catch {
+        toast.error('Lottie JSON is invalid — paste valid JSON from your .json file.');
+        return;
+      }
+    }
+    if (!iconT && !animT && !animJsonT) {
+      toast.error('Add a Lottie JSON, a send animation URL/upload, and/or an icon — at least one is required.');
       return;
     }
     try {
@@ -138,6 +151,7 @@ const GiftManagement = () => {
         category: form.category || 'Popular',
         iconUrl: iconT || undefined,
         animationUrl: animT || undefined,
+        animationJson: animJsonT || null,
         displayOrder: Number(form.displayOrder) || 0,
         isActive: form.isActive,
       };
@@ -186,9 +200,9 @@ const GiftManagement = () => {
     const file = e?.target?.files?.[0];
     if (!file) return;
     const name = file.name?.toLowerCase() ?? '';
-    const okExt = /\.(json|gif|webp|png|jpe?g)$/i.test(name);
+    const okExt = /\.(gif|webp|png|jpe?g)$/i.test(name);
     if (!okExt) {
-      toast.error('Use .json (Lottie) or an image: .gif, .webp, .png, .jpg');
+      toast.error('Upload GIF / WebP / PNG / JPG only. For Lottie, paste JSON in the field below.');
       return;
     }
     try {
@@ -288,7 +302,8 @@ const GiftManagement = () => {
                         className="h-10 w-10 rounded border flex items-center justify-center bg-muted overflow-hidden text-[10px] text-muted-foreground"
                         title={g.animationUrl || ''}
                       >
-                        {g.animationUrl && /\.json($|\?)/i.test(g.animationUrl) ? (
+                        {(g.animationJson && String(g.animationJson).trim()) ||
+                        (g.animationUrl && /\.json($|\?)/i.test(g.animationUrl)) ? (
                           <span className="px-1 text-center leading-tight">Lottie</span>
                         ) : g.animationUrl ? (
                           <img
@@ -350,8 +365,8 @@ const GiftManagement = () => {
             <DialogTitle>{editingGift ? 'Edit gift' : 'Add gift'}</DialogTitle>
             <DialogDescription>
               {editingGift
-                ? 'Same files are used in the app: send animation on stream, icon (optional) in the gift row.'
-                : 'At minimum, upload a send animation (or an icon). That animation is what viewers see on screen when they send this gift.'}
+                ? 'Lottie: paste JSON into the field below (stored in MongoDB). Optional: GIF/WebP URL or upload for raster animation; icon for the gift strip.'
+                : 'Paste Lottie JSON from your .json file (recommended), or set a GIF/WebP animation URL/upload, plus optional icon.'}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -397,18 +412,32 @@ const GiftManagement = () => {
               <p className="text-xs text-muted-foreground">Category determines how gifts are grouped in the app.</p>
             </div>
             <div className="space-y-2">
+              <Label htmlFor="animationJson">Lottie animation (JSON)</Label>
+              <p className="text-xs text-muted-foreground">
+                Paste the full contents of your Bodymovin / Lottie <code className="text-xs">.json</code> file. Stored as-is in MongoDB — no upload. Plays on viewer and streamer for ~10s when the gift is sent.
+              </p>
+              <Textarea
+                id="animationJson"
+                value={form.animationJson}
+                onChange={(e) => setForm((f) => ({ ...f, animationJson: e.target.value }))}
+                placeholder='{"v":"5.7.4","fr":60,...}'
+                className="font-mono text-xs min-h-[120px]"
+                spellCheck={false}
+              />
+            </div>
+            <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Clapperboard className="h-4 w-4" />
-                Send animation
+                Send animation (GIF / WebP / image URL)
               </Label>
               <p className="text-xs text-muted-foreground">
-                Plays on the live stream when a viewer sends this gift (Lottie .json or GIF / WebP / PNG). You must set at least this or an icon below.
+                Optional alternative to Lottie JSON: raster animation or static art. You can also upload a file (not .json).
               </p>
               <div className="flex items-center gap-3 flex-wrap">
                 <input
                   ref={animationFileRef}
                   type="file"
-                  accept=".json,application/json,image/gif,image/webp,image/png,image/jpeg"
+                  accept="image/gif,image/webp,image/png,image/jpeg"
                   className="hidden"
                   onChange={handleUploadAnimation}
                 />
@@ -420,7 +449,7 @@ const GiftManagement = () => {
                   onClick={() => animationFileRef.current?.click()}
                 >
                   <Upload className="h-4 w-4 mr-2" />
-                  {uploadingAnimation ? 'Uploading…' : 'Upload animation'}
+                  {uploadingAnimation ? 'Uploading…' : 'Upload image / GIF'}
                 </Button>
                 {(animationPreviewUrl || form.animationUrl) &&
                 /\.json($|[?#&])/i.test((form.animationUrl || animationPreviewUrl || '').trim()) ? (
@@ -428,7 +457,7 @@ const GiftManagement = () => {
                     className="text-xs text-muted-foreground max-w-[200px] truncate"
                     title={form.animationUrl || animationPreviewUrl}
                   >
-                    Lottie JSON linked (plays on viewer app)
+                    JSON URL (legacy)
                   </span>
                 ) : (animationPreviewUrl || form.animationUrl) ? (
                   <div className="h-14 w-14 rounded border overflow-hidden bg-muted flex-shrink-0">
