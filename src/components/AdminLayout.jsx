@@ -30,6 +30,7 @@ import {
   DollarSign,
   ArrowDownToLine,
   Sparkles,
+  Crown,
 } from 'lucide-react';
 
 const AdminLayout = ({ children, user, onLogout }) => {
@@ -72,6 +73,11 @@ const AdminLayout = ({ children, user, onLogout }) => {
       name: 'Sponsored creators',
       href: '/sponsored-creators',
       icon: Sparkles,
+    },
+    {
+      name: 'Ruby Crown (1.5M wallet)',
+      href: '/ruby-crown-wallet',
+      icon: Crown,
     },
     {
       name: 'Reported Users',

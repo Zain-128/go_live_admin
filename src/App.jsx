@@ -25,6 +25,7 @@ import StickerManagement from './pages/StickerManagement';
 import GiftManagement from './pages/GiftManagement';
 import CashoutOptionManagement from './pages/CashoutOptionManagement';
 import WithdrawRequests from './pages/WithdrawRequests';
+import RubyCrownWalletEligible from './pages/RubyCrownWalletEligible';
 
 // Auth check: token + user with admin/moderator level (level >= 3 or role name)
 const isAuthenticated = () => {
@@ -115,6 +116,17 @@ function App() {
               <ProtectedRoute>
                 <AdminLayout user={user} onLogout={handleLogout}>
                   <SponsoredCreators />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/ruby-crown-wallet"
+            element={
+              <ProtectedRoute>
+                <AdminLayout user={user} onLogout={handleLogout}>
+                  <RubyCrownWalletEligible />
                 </AdminLayout>
               </ProtectedRoute>
             }
