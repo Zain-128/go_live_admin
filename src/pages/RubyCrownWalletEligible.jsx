@@ -75,19 +75,18 @@ const RubyCrownWalletEligible = () => {
     }
   };
 
-  const fmtCoins = (n) => (typeof n === 'number' ? n.toLocaleString() : '—');
-
   return (
     <div className="p-6 space-y-6">
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
             <Crown className="h-6 w-6 text-rose-600" />
-            <CardTitle>Ruby Crown — wallet (1.5M+ coins)</CardTitle>
+            <CardTitle>Ruby Crown — monthly USD spend ($30k+)</CardTitle>
           </div>
           <CardDescription>
-            Users whose wallet balance is strictly above 1,500,000 coins. Assign Ruby Crown here; this path does not use
-            monthly purchase rank or the 30-slot limit. Streams and comments show the crown like other Ruby tiers.
+            Users who spent at least $30,000 USD on coin purchases in the current calendar month (IAP). Assign Ruby only
+            when the user is eligible: same rules as in-app apply — top 30 by monthly USD spend and an available Ruby slot.
+            Wallet balance does not matter. Streams and comments show the crown like other Ruby tiers.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -115,7 +114,8 @@ const RubyCrownWalletEligible = () => {
                 <TableRow>
                   <TableHead>User</TableHead>
                   <TableHead>Username</TableHead>
-                  <TableHead>Coins</TableHead>
+                  <TableHead>USD (month)</TableHead>
+                  <TableHead>Wallet (coins)</TableHead>
                   <TableHead>Ruby</TableHead>
                   <TableHead className="text-right">Action</TableHead>
                 </TableRow>
@@ -123,15 +123,15 @@ const RubyCrownWalletEligible = () => {
               <TableBody>
                 {loading && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground">
                       Loading…
                     </TableCell>
                   </TableRow>
                 )}
                 {!loading && rows.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">
-                      No users with wallet above 1.5M coins.
+                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                      No users at $30k+ USD spend this month.
                     </TableCell>
                   </TableRow>
                 )}
@@ -143,7 +143,14 @@ const RubyCrownWalletEligible = () => {
                       <TableRow key={id}>
                         <TableCell className="font-medium">{u.name || '—'}</TableCell>
                         <TableCell>{u.username || '—'}</TableCell>
-                        <TableCell>{fmtCoins(u.coins)}</TableCell>
+                        <TableCell>
+                          {typeof u.totalUsdThisMonth === 'number'
+                            ? `$${u.totalUsdThisMonth.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+                            : '—'}
+                        </TableCell>
+                        <TableCell>
+                          {typeof u.coins === 'number' ? u.coins.toLocaleString() : '—'}
+                        </TableCell>
                         <TableCell>
                           {u.hasActiveRuby ? (
                             <Badge className="bg-rose-700">Active</Badge>

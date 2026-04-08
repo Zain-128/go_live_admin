@@ -31,6 +31,7 @@ import {
   ArrowDownToLine,
   Sparkles,
   Crown,
+  ImageIcon,
 } from 'lucide-react';
 
 const AdminLayout = ({ children, user, onLogout }) => {
@@ -75,9 +76,14 @@ const AdminLayout = ({ children, user, onLogout }) => {
       icon: Sparkles,
     },
     {
-      name: 'Ruby Crown (1.5M wallet)',
+      name: 'Ruby Crown (monthly USD)',
       href: '/ruby-crown-wallet',
       icon: Crown,
+    },
+    {
+      name: 'Banners',
+      href: '/banners',
+      icon: ImageIcon,
     },
     {
       name: 'Reported Users',
