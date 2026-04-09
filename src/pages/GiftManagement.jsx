@@ -34,7 +34,7 @@ const emptyGift = {
   category: 'Popular',
   iconUrl: '',
   animationUrl: '',
-  /** Raw Lottie JSON (Bodymovin) — stored in MongoDB, no .json file upload. */
+  /** Raw Lottie JSON (Bodymovin) — from paste or .json file read in browser; stored in MongoDB. */
   animationJson: '',
   displayOrder: 0,
   isActive: true,
@@ -64,6 +64,7 @@ const GiftManagement = () => {
   const [uploadingAnimation, setUploadingAnimation] = useState(false);
   const [animationPreviewUrl, setAnimationPreviewUrl] = useState('');
   const animationFileRef = React.useRef(null);
+  const lottieJsonFileRef = React.useRef(null);
 
   const fetchGifts = async () => {
     try {
@@ -202,7 +203,7 @@ const GiftManagement = () => {
     const name = file.name?.toLowerCase() ?? '';
     const okExt = /\.(gif|webp|png|jpe?g)$/i.test(name);
     if (!okExt) {
-      toast.error('Upload GIF / WebP / PNG / JPG only. For Lottie, paste JSON in the field below.');
+      toast.error('Upload GIF / WebP / PNG / JPG only. For Lottie, upload a .json file or paste JSON below.');
       return;
     }
     try {
@@ -219,6 +220,33 @@ const GiftManagement = () => {
     } finally {
       setUploadingAnimation(false);
       if (animationFileRef.current) animationFileRef.current.value = '';
+    }
+  };
+
+  const handleLottieJsonFile = async (e) => {
+    const file = e?.target?.files?.[0];
+    if (!file) return;
+    const name = file.name?.toLowerCase() ?? '';
+    if (!name.endsWith('.json') && file.type && !/json|text\/plain/i.test(file.type)) {
+      toast.error('Please choose a Lottie / Bodymovin .json file.');
+      if (lottieJsonFileRef.current) lottieJsonFileRef.current.value = '';
+      return;
+    }
+    try {
+      const text = await file.text();
+      const trimmed = text.trim();
+      if (!trimmed) {
+        toast.error('File is empty.');
+        if (lottieJsonFileRef.current) lottieJsonFileRef.current.value = '';
+        return;
+      }
+      JSON.parse(trimmed);
+      setForm((f) => ({ ...f, animationJson: trimmed }));
+      toast.success('Lottie JSON loaded from file — save the gift to store it.');
+    } catch {
+      toast.error('Invalid JSON — use a valid Bodymovin / Lottie export .json file.');
+    } finally {
+      if (lottieJsonFileRef.current) lottieJsonFileRef.current.value = '';
     }
   };
 
@@ -365,8 +393,8 @@ const GiftManagement = () => {
             <DialogTitle>{editingGift ? 'Edit gift' : 'Add gift'}</DialogTitle>
             <DialogDescription>
               {editingGift
-                ? 'Lottie: paste JSON into the field below (stored in MongoDB). Optional: GIF/WebP URL or upload for raster animation; icon for the gift strip.'
-                : 'Paste Lottie JSON from your .json file (recommended), or set a GIF/WebP animation URL/upload, plus optional icon.'}
+                ? 'Lottie: upload a .json file or paste JSON below (stored in MongoDB). Optional: GIF/WebP URL or upload for raster animation; icon for the gift strip.'
+                : 'Upload your Lottie .json file or paste JSON, or set a GIF/WebP animation URL/upload, plus optional icon.'}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -414,13 +442,34 @@ const GiftManagement = () => {
             <div className="space-y-2">
               <Label htmlFor="animationJson">Lottie animation (JSON)</Label>
               <p className="text-xs text-muted-foreground">
-                Paste the full contents of your Bodymovin / Lottie <code className="text-xs">.json</code> file. Stored as-is in MongoDB — no upload. Plays on viewer and streamer for ~10s when the gift is sent.
+                Upload a Bodymovin / Lottie <code className="text-xs">.json</code> file (we read it in the browser and store the JSON in MongoDB), or paste the same below. Plays on viewer and streamer for ~10s when the gift is sent.
               </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <input
+                  ref={lottieJsonFileRef}
+                  type="file"
+                  accept=".json,application/json,text/plain"
+                  className="hidden"
+                  onChange={handleLottieJsonFile}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => lottieJsonFileRef.current?.click()}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload lottie.json
+                </Button>
+                {form.animationJson?.trim() ? (
+                  <span className="text-xs text-muted-foreground">JSON loaded — edit below if needed.</span>
+                ) : null}
+              </div>
               <Textarea
                 id="animationJson"
                 value={form.animationJson}
                 onChange={(e) => setForm((f) => ({ ...f, animationJson: e.target.value }))}
-                placeholder='{"v":"5.7.4","fr":60,...}'
+                placeholder='{"v":"5.7.4","fr":60,...} or use Upload lottie.json above'
                 className="font-mono text-xs min-h-[120px]"
                 spellCheck={false}
               />
