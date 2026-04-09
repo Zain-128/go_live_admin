@@ -442,7 +442,7 @@ const GiftManagement = () => {
             <div className="space-y-2">
               <Label htmlFor="animationJson">Lottie animation (JSON)</Label>
               <p className="text-xs text-muted-foreground">
-                Upload a Bodymovin / Lottie <code className="text-xs">.json</code> file (we read it in the browser and store the JSON in MongoDB), or paste the same below. Plays on viewer and streamer for ~10s when the gift is sent.
+                Upload a Bodymovin / Lottie <code className="text-xs">.json</code> file (we read it in the browser and store the JSON in MongoDB), or paste the same below. No line or character cap in the form — very large files are limited only by MongoDB (~16MB per document) and the API payload. Plays on viewer and streamer for ~10s when the gift is sent.
               </p>
               <div className="flex items-center gap-2 flex-wrap">
                 <input
