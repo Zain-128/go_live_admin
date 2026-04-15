@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -8,6 +8,8 @@ import payoutAnalyticsService from "../services/payoutAnalyticsService";
 
 const GifterPayoutDetails = () => {
   const { gifterId } = useParams();
+  const [searchParams] = useSearchParams();
+  const streamId = searchParams.get("streamId") || "";
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
 
@@ -18,7 +20,11 @@ const GifterPayoutDetails = () => {
   const fetchData = async (page = 1) => {
     try {
       setLoading(true);
-      const response = await payoutAnalyticsService.getGifterDetails(gifterId, { page, limit: 20 });
+      const response = await payoutAnalyticsService.getGifterDetails(gifterId, {
+        page,
+        limit: 20,
+        ...(streamId ? { streamId } : {}),
+      });
       setData(response);
     } catch (error) {
       toast.error(error?.response?.data?.message || "Failed to fetch gifter details");
@@ -29,13 +35,17 @@ const GifterPayoutDetails = () => {
 
   useEffect(() => {
     fetchData();
-  }, [gifterId]);
+  }, [gifterId, streamId]);
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Gifter Details</h1>
-        <p className="text-gray-600 mt-1">Detailed gifting and coin purchase history of this user.</p>
+        <p className="text-gray-600 mt-1">
+          {streamId
+            ? "Showing gifting done by this user for the selected stream."
+            : "Detailed gifting and coin purchase history of this user."}
+        </p>
       </div>
 
       {loading ? (
