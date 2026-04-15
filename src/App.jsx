@@ -25,7 +25,10 @@ import StickerManagement from './pages/StickerManagement';
 import GiftManagement from './pages/GiftManagement';
 import CashoutOptionManagement from './pages/CashoutOptionManagement';
 import WithdrawRequests from './pages/WithdrawRequests';
+import WithdrawRequestDetails from './pages/WithdrawRequestDetails';
+import WithdrawRequestStreamDetails from './pages/WithdrawRequestStreamDetails';
 import RubyCrownWalletEligible from './pages/RubyCrownWalletEligible';
+import GifterPayoutDetails from './pages/GifterPayoutDetails';
 
 // Auth check: token + user with admin/moderator level (level >= 3 or role name)
 const isAuthenticated = () => {
@@ -316,11 +319,41 @@ function App() {
             }
           />
           <Route
+            path="/withdraw-requests/:id"
+            element={
+              <ProtectedRoute>
+                <AdminLayout user={user} onLogout={handleLogout}>
+                  <WithdrawRequestDetails />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/withdraw-requests/:id/streams/:streamId"
+            element={
+              <ProtectedRoute>
+                <AdminLayout user={user} onLogout={handleLogout}>
+                  <WithdrawRequestStreamDetails />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/cashout-options"
             element={
               <ProtectedRoute>
                 <AdminLayout user={user} onLogout={handleLogout}>
                   <CashoutOptionManagement />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/withdraw-requests/gifters/:gifterId"
+            element={
+              <ProtectedRoute>
+                <AdminLayout user={user} onLogout={handleLogout}>
+                  <GifterPayoutDetails />
                 </AdminLayout>
               </ProtectedRoute>
             }

@@ -2,11 +2,12 @@ import api from './api';
 
 export const withdrawRequestService = {
   async getWithdrawRequests(params = {}) {
-    const { page = 1, limit = 20, status } = params;
+    const { page = 1, limit = 20, status, search } = params;
     const queryParams = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString(),
       ...(status && { status }),
+      ...(search && { search }),
     });
     const response = await api.get(`/admin/withdraw-requests?${queryParams}`);
     return response.data.data;
@@ -20,5 +21,10 @@ export const withdrawRequestService = {
   async rejectRequest(id, adminNotes = null) {
     const response = await api.patch(`/admin/withdraw-requests/${id}/reject`, { adminNotes });
     return response.data;
+  },
+
+  async getRequestById(id) {
+    const response = await api.get(`/admin/withdraw-requests/${id}`);
+    return response.data.data;
   },
 };

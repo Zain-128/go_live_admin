@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { withdrawRequestService } from '../services/withdrawRequestService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import {
   Table,
@@ -19,17 +21,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../components/ui/dialog';
-import { Wallet, User, Check, X } from 'lucide-react';
+import { Wallet, User, Check, X, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 const WithdrawRequests = () => {
+  const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
+  const [search, setSearch] = useState('');
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
     total: 0,
+    totalCount: 0,
     totalPages: 1,
   });
 
@@ -37,16 +42,24 @@ const WithdrawRequests = () => {
   const [adminNotes, setAdminNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchRequests = async (page = 1, status = '') => {
+  const fetchRequests = async (page = 1, status = '', searchText = search) => {
     try {
       setLoading(true);
       const result = await withdrawRequestService.getWithdrawRequests({
         page,
         limit: 10,
         status: status || undefined,
+        search: searchText || undefined,
       });
       setRequests(result.requests || []);
-      setPagination(result.pagination || { page: 1, limit: 10, total: 0, totalPages: 1 });
+      const incomingPagination = result.pagination || {};
+      setPagination({
+        page: Number(incomingPagination.page) || 1,
+        limit: Number(incomingPagination.limit) || 10,
+        totalCount: Number(incomingPagination.totalCount) || 0,
+        total: Number(incomingPagination.totalCount) || 0,
+        totalPages: Number(incomingPagination.totalPages) || 1,
+      });
     } catch (error) {
       console.error('Failed to fetch withdraw requests:', error);
       toast.error('Failed to fetch withdraw requests');
@@ -61,11 +74,15 @@ const WithdrawRequests = () => {
 
   const handleStatusFilter = (status) => {
     setStatusFilter(status);
-    fetchRequests(1, status);
+    fetchRequests(1, status, search);
   };
 
   const handlePageChange = (newPage) => {
-    fetchRequests(newPage, statusFilter);
+    fetchRequests(newPage, statusFilter, search);
+  };
+
+  const handleSearch = () => {
+    fetchRequests(1, statusFilter, search);
   };
 
   const openApprove = (request) => {
@@ -81,6 +98,15 @@ const WithdrawRequests = () => {
   const closeDialog = () => {
     setActionDialog({ open: false, type: null, request: null });
     setAdminNotes('');
+  };
+
+  const openDetails = (request) => {
+    const requestId = request?._id;
+    if (!requestId) {
+      toast.error('Request details unavailable');
+      return;
+    }
+    navigate(`/withdraw-requests/${requestId}`);
   };
 
   const handleConfirm = async () => {
@@ -149,6 +175,16 @@ const WithdrawRequests = () => {
           <CardDescription>Users requesting to convert their rubies to USD via PayPal.</CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="flex gap-2 mb-4">
+            <Input
+              placeholder="Search by user name, username, email, PayPal"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <Button variant="outline" onClick={handleSearch}>
+              Search
+            </Button>
+          </div>
           <div className="flex gap-2 mb-6">
             {['', 'pending', 'approved', 'rejected'].map((s) => (
               <Button
@@ -214,8 +250,17 @@ const WithdrawRequests = () => {
                         {new Date(req.createdAt).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openDetails(req)}
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            Details
+                          </Button>
                         {req.status === 'pending' && (
-                          <div className="flex justify-end gap-2">
+                          <>
                             <Button
                               variant="default"
                               size="sm"
@@ -233,7 +278,11 @@ const WithdrawRequests = () => {
                               <X className="w-4 h-4 mr-1" />
                               Reject
                             </Button>
-                          </div>
+                          </>
+                        )}
+                        </div>
+                        {req.status === 'pending' && (
+                          null
                         )}
                         {req.status !== 'pending' && req.reviewedAt && (
                           <div className="text-xs text-gray-400">
@@ -250,8 +299,14 @@ const WithdrawRequests = () => {
 
           <div className="flex items-center justify-between mt-4">
             <div className="text-sm text-gray-500">
-              Showing {requests.length === 0 ? 0 : ((pagination.page - 1) * pagination.limit) + 1} to{' '}
-              {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} requests
+              {(() => {
+                const pageNum = Number(pagination.page) || 1;
+                const pageLimit = Number(pagination.limit) || 10;
+                const totalCount = Number(pagination.totalCount ?? pagination.total) || 0;
+                const from = totalCount === 0 ? 0 : ((pageNum - 1) * pageLimit) + 1;
+                const to = totalCount === 0 ? 0 : Math.min(pageNum * pageLimit, totalCount);
+                return `Showing ${from} to ${to} of ${totalCount} requests`;
+              })()}
             </div>
             <div className="flex items-center space-x-2">
               <Button

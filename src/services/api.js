@@ -1,11 +1,11 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://slothyy.com/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://api.golivestreamers.com/api/v1";
 // const API_BASE_URL = 'http://localhost:8002/api/v1';
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
-  // baseURL:"https://urijah-unfair-unpathetically.ngrok-free.dev/api/v1",
+  // baseURL: API_BASE_URL,
+  baseURL:"https://api.golivestreamers.com/api/v1",
   headers: {
     'Content-Type': 'application/json',
   },
