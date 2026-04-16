@@ -132,7 +132,7 @@ export function AdminLoginForm({ onLoginSuccess }) {
         </CardContent>
       </Card>
 
-      <Card className="bg-blue-50 border-blue-200">
+      {/* <Card className="bg-blue-50 border-blue-200">
         <CardContent className="pt-6">
           <h4 className="font-semibold text-blue-800 mb-3">Demo Credentials:</h4>
           <div className="text-sm text-blue-700 space-y-2">
@@ -140,7 +140,7 @@ export function AdminLoginForm({ onLoginSuccess }) {
             <p><strong>Staff:</strong> staff1@example.com / Staff123!</p>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
       <div className="text-center text-xs text-gray-500 text-balance">
         Admin access requires elevated privileges.{' '}
