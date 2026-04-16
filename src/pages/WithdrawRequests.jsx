@@ -21,7 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../components/ui/dialog';
-import { Wallet, User, Check, X, Eye } from 'lucide-react';
+import { Wallet, User, Check, X, Eye, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const WithdrawRequests = () => {
@@ -95,6 +95,11 @@ const WithdrawRequests = () => {
     setAdminNotes('');
   };
 
+  const openDelete = (request) => {
+    setActionDialog({ open: true, type: 'delete', request });
+    setAdminNotes('');
+  };
+
   const closeDialog = () => {
     setActionDialog({ open: false, type: null, request: null });
     setAdminNotes('');
@@ -117,9 +122,12 @@ const WithdrawRequests = () => {
       if (type === 'approve') {
         await withdrawRequestService.approveRequest(request._id, adminNotes || undefined);
         toast.success('Withdraw request approved. Rubies have been deducted from the user.');
-      } else {
+      } else if (type === 'reject') {
         await withdrawRequestService.rejectRequest(request._id, adminNotes || undefined);
         toast.success('Withdraw request rejected.');
+      } else if (type === 'delete') {
+        await withdrawRequestService.deleteRequest(request._id);
+        toast.success('Withdraw request deleted.');
       }
       closeDialog();
       fetchRequests(pagination.page, statusFilter);
@@ -259,6 +267,16 @@ const WithdrawRequests = () => {
                             <Eye className="w-4 h-4 mr-1" />
                             Details
                           </Button>
+                          {req.status !== 'pending' && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => openDelete(req)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              Delete
+                            </Button>
+                          )}
                         {req.status === 'pending' && (
                           <>
                             <Button
@@ -337,12 +355,18 @@ const WithdrawRequests = () => {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {actionDialog.type === 'approve' ? 'Approve withdraw request' : 'Reject withdraw request'}
+              {actionDialog.type === 'approve'
+                ? 'Approve withdraw request'
+                : actionDialog.type === 'reject'
+                  ? 'Reject withdraw request'
+                  : 'Delete withdraw request'}
             </DialogTitle>
             <DialogDescription>
               {actionDialog.type === 'approve'
                 ? 'Approving will deduct the rubies from the user\'s balance. Make sure the PayPal payout has been processed.'
-                : 'The request will be marked as rejected. No rubies will be deducted.'}
+                : actionDialog.type === 'reject'
+                  ? 'The request will be marked as rejected. No rubies will be deducted.'
+                  : 'This will permanently remove the request (non-pending only). This cannot be undone.'}
             </DialogDescription>
           </DialogHeader>
           {actionDialog.request && (
@@ -359,16 +383,18 @@ const WithdrawRequests = () => {
               <p className="text-sm">
                 <span className="font-medium">PayPal:</span> {actionDialog.request.paypalEmail}
               </p>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Admin notes (optional)</label>
-                <textarea
-                  className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
-                  rows={2}
-                  placeholder="Optional note for records"
-                  value={adminNotes}
-                  onChange={(e) => setAdminNotes(e.target.value)}
-                />
-              </div>
+              {actionDialog.type !== 'delete' && (
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Admin notes (optional)</label>
+                  <textarea
+                    className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                    rows={2}
+                    placeholder="Optional note for records"
+                    value={adminNotes}
+                    onChange={(e) => setAdminNotes(e.target.value)}
+                  />
+                </div>
+              )}
             </div>
           )}
           <DialogFooter>
@@ -380,7 +406,13 @@ const WithdrawRequests = () => {
               onClick={handleConfirm}
               disabled={submitting}
             >
-              {submitting ? 'Processing...' : actionDialog.type === 'approve' ? 'Approve' : 'Reject'}
+              {submitting
+                ? 'Processing...'
+                : actionDialog.type === 'approve'
+                  ? 'Approve'
+                  : actionDialog.type === 'reject'
+                    ? 'Reject'
+                    : 'Delete'}
             </Button>
           </DialogFooter>
         </DialogContent>

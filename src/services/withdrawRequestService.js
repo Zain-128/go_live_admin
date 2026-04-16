@@ -27,4 +27,9 @@ export const withdrawRequestService = {
     const response = await api.get(`/admin/withdraw-requests/${id}`);
     return response.data.data;
   },
+
+  async deleteRequest(id) {
+    const response = await api.delete(`/admin/withdraw-requests/${id}`);
+    return response.data;
+  },
 };
