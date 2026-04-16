@@ -32,6 +32,7 @@ import {
   Sparkles,
   Crown,
   ImageIcon,
+  Gem,
 } from 'lucide-react';
 
 const AdminLayout = ({ children, user, onLogout }) => {
@@ -104,6 +105,12 @@ const AdminLayout = ({ children, user, onLogout }) => {
       name: 'Withdraw Requests',
       href: '/withdraw-requests',
       icon: ArrowDownToLine,
+    },
+    {
+      name: 'Streamers & rubies',
+      href: '/streamers-rubies',
+      icon: Gem,
+      pathMatch: 'prefix',
     },
     {
       name: 'Cash out email change',
@@ -205,6 +212,11 @@ const AdminLayout = ({ children, user, onLogout }) => {
 
   const isActive = (path) => location.pathname === path;
 
+  const isNavItemActive = (item) => {
+    if (item.pathMatch === 'prefix') return location.pathname.startsWith(item.href);
+    return location.pathname === item.href;
+  };
+
   const isGroupActive = (children) => {
     return children.some(child => location.pathname === child.href);
   };
@@ -282,7 +294,7 @@ const AdminLayout = ({ children, user, onLogout }) => {
                   key={item.name}
                   to={item.href}
                   className={`flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium ${
-                    isActive(item.href)
+                    isNavItemActive(item)
                       ? 'bg-primary text-primary-foreground'
                       : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
                   }`}
@@ -363,7 +375,7 @@ const AdminLayout = ({ children, user, onLogout }) => {
                 key={item.name}
                 to={item.href}
                 className={`flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium ${
-                  isActive(item.href)
+                  isNavItemActive(item)
                     ? 'bg-primary text-primary-foreground'
                     : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
                 }`}

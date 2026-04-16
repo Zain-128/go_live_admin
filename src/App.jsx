@@ -29,6 +29,9 @@ import WithdrawRequestDetails from './pages/WithdrawRequestDetails';
 import WithdrawRequestStreamDetails from './pages/WithdrawRequestStreamDetails';
 import RubyCrownWalletEligible from './pages/RubyCrownWalletEligible';
 import GifterPayoutDetails from './pages/GifterPayoutDetails';
+import StreamerRubiesList from './pages/StreamerRubiesList';
+import StreamerRubiesDetail from './pages/StreamerRubiesDetail';
+import StreamerStreamGiftsAdmin from './pages/StreamerStreamGiftsAdmin';
 
 // Auth check: token + user with admin/moderator level (level >= 3 or role name)
 const isAuthenticated = () => {
@@ -354,6 +357,37 @@ function App() {
               <ProtectedRoute>
                 <AdminLayout user={user} onLogout={handleLogout}>
                   <GifterPayoutDetails />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/streamers-rubies/:streamerId/streams/:streamId"
+            element={
+              <ProtectedRoute>
+                <AdminLayout user={user} onLogout={handleLogout}>
+                  <StreamerStreamGiftsAdmin />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/streamers-rubies/:streamerId"
+            element={
+              <ProtectedRoute>
+                <AdminLayout user={user} onLogout={handleLogout}>
+                  <StreamerRubiesDetail />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/streamers-rubies"
+            element={
+              <ProtectedRoute>
+                <AdminLayout user={user} onLogout={handleLogout}>
+                  <StreamerRubiesList />
                 </AdminLayout>
               </ProtectedRoute>
             }
