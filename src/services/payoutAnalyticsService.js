@@ -7,7 +7,9 @@ export const payoutAnalyticsService = {
   },
 
   async getStreamerDetails(streamerId, params = {}) {
-    const response = await api.get(`/admin/payout-analytics/streamers/${streamerId}`, { params });
+    const response = await api.get(`/admin/payout-analytics/streamers/${streamerId}`, {
+      params,
+    });
     return response.data.data;
   },
 

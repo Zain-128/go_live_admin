@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
+import { Select, SelectItem } from '../components/ui/select';
 import {
   Table,
   TableBody,
@@ -14,23 +15,42 @@ import {
 } from '../components/ui/table';
 import payoutAnalyticsService from '../services/payoutAnalyticsService';
 
+const DEFAULT_STREAM_SORT = 'streamEndedAt|desc';
+
+const STREAM_SORT_OPTIONS = [
+  { value: 'streamEndedAt|desc', label: 'Stream ended (newest first)' },
+  { value: 'streamEndedAt|asc', label: 'Stream ended (oldest first)' },
+  { value: 'streamStartedAt|desc', label: 'Stream started (newest first)' },
+  { value: 'streamStartedAt|asc', label: 'Stream started (oldest first)' },
+  { value: 'totalCoinsReceived|desc', label: 'Coins received (high → low)' },
+  { value: 'totalCoinsReceived|asc', label: 'Coins received (low → high)' },
+  { value: 'streamerRubies|desc', label: 'Rubies earned (high → low)' },
+  { value: 'streamerRubies|asc', label: 'Rubies earned (low → high)' },
+  { value: 'createdAt|desc', label: 'Earnings record (newest)' },
+  { value: 'createdAt|asc', label: 'Earnings record (oldest)' },
+];
+
 const StreamerRubiesDetail = () => {
   const { streamerId } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
+  const [streamSortOption, setStreamSortOption] = useState(DEFAULT_STREAM_SORT);
 
   const formatNumber = (n) => new Intl.NumberFormat('en-US').format(Number(n) || 0);
   const formatUsd = (n) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(n) || 0);
 
-  const load = async (page = 1) => {
+  const load = async (page = 1, sortKey = streamSortOption) => {
     if (!streamerId) return;
+    const [streamsSortBy, streamsSortOrder] = String(sortKey).split('|');
     try {
       setLoading(true);
       const res = await payoutAnalyticsService.getStreamerDetails(streamerId, {
         streamPage: page,
         streamLimit: 10,
+        streamsSortBy,
+        streamsSortOrder,
       });
       setData(res);
     } catch (e) {
@@ -41,7 +61,8 @@ const StreamerRubiesDetail = () => {
   };
 
   useEffect(() => {
-    load(1);
+    setStreamSortOption(DEFAULT_STREAM_SORT);
+    load(1, DEFAULT_STREAM_SORT);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [streamerId]);
 
@@ -123,6 +144,23 @@ const StreamerRubiesDetail = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              <div className="max-w-md mb-4">
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Sort streams by</label>
+                <Select
+                  value={streamSortOption}
+                  onValueChange={(v) => {
+                    setStreamSortOption(v);
+                    load(1, v);
+                  }}
+                  placeholder="Sort streams…"
+                >
+                  {STREAM_SORT_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </Select>
+              </div>
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
@@ -201,7 +239,7 @@ const StreamerRubiesDetail = () => {
                     variant="outline"
                     size="sm"
                     disabled={Number(sp.page) <= 1 || loading}
-                    onClick={() => load(Number(sp.page) - 1)}
+                    onClick={() => load(Number(sp.page) - 1, streamSortOption)}
                   >
                     Previous
                   </Button>
@@ -209,7 +247,7 @@ const StreamerRubiesDetail = () => {
                     variant="outline"
                     size="sm"
                     disabled={Number(sp.page) >= Number(sp.totalPages) || loading}
-                    onClick={() => load(Number(sp.page) + 1)}
+                    onClick={() => load(Number(sp.page) + 1, streamSortOption)}
                   >
                     Next
                   </Button>

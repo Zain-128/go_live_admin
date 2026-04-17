@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import { Select, SelectItem } from '../components/ui/select';
 import {
   Table,
   TableBody,
@@ -14,11 +15,27 @@ import {
 } from '../components/ui/table';
 import payoutAnalyticsService from '../services/payoutAnalyticsService';
 
+const SORT_OPTIONS = [
+  { value: 'rubies|desc', label: 'Wallet rubies (high → low)' },
+  { value: 'rubies|asc', label: 'Wallet rubies (low → high)' },
+  { value: 'lifetimeRubies|desc', label: 'Lifetime rubies (high → low)' },
+  { value: 'lifetimeRubies|asc', label: 'Lifetime rubies (low → high)' },
+  { value: 'name|asc', label: 'Name (A–Z)' },
+  { value: 'name|desc', label: 'Name (Z–A)' },
+  { value: 'username|asc', label: 'Username (A–Z)' },
+  { value: 'username|desc', label: 'Username (Z–A)' },
+  { value: 'email|asc', label: 'Email (A–Z)' },
+  { value: 'email|desc', label: 'Email (Z–A)' },
+  { value: 'createdAt|desc', label: 'Account created (newest)' },
+  { value: 'createdAt|asc', label: 'Account created (oldest)' },
+];
+
 const StreamerRubiesList = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
   const [search, setSearch] = useState('');
+  const [sortOption, setSortOption] = useState('rubies|desc');
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
@@ -28,13 +45,16 @@ const StreamerRubiesList = () => {
 
   const formatNumber = (n) => new Intl.NumberFormat('en-US').format(Number(n) || 0);
 
-  const fetchData = async (page = 1, q = search) => {
+  const fetchData = async (page = 1, q = search, sortKey = sortOption) => {
     try {
       setLoading(true);
+      const [sortBy, sortOrder] = String(sortKey).split('|');
       const data = await payoutAnalyticsService.getStreamers({
         page,
         limit: 20,
         search: q?.trim() || undefined,
+        sortBy,
+        sortOrder,
       });
       setRows(data.streamers || []);
       const p = data.pagination || {};
@@ -68,18 +88,40 @@ const StreamerRubiesList = () => {
       <Card>
         <CardHeader>
           <CardTitle>Streamer directory</CardTitle>
-          <CardDescription>Search by name, username, or email.</CardDescription>
+          <CardDescription>
+            Search by name, username, or email. Sort is applied on the server before pagination.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-2 mb-4">
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
             <Input
+              className="sm:flex-1"
               placeholder="Search streamers…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <Button variant="outline" onClick={() => fetchData(1, search)}>
-              Search
-            </Button>
+            <div className="w-full sm:w-64">
+              <label className="text-xs font-medium text-gray-600 mb-1 block">Sort by</label>
+              <Select
+                value={sortOption}
+                onValueChange={(v) => {
+                  setSortOption(v);
+                  fetchData(1, search, v);
+                }}
+                placeholder="Sort…"
+              >
+                {SORT_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button variant="outline" className="w-full sm:w-auto" onClick={() => fetchData(1, search)}>
+                Search
+              </Button>
+            </div>
           </div>
 
           {loading && rows.length === 0 ? (
