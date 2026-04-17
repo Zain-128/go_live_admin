@@ -24,7 +24,9 @@ import {
   XCircle,
   Eye,
   UserPlus,
-  Trash2
+  Trash2,
+  BadgeCheck,
+  ShieldAlert
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -289,6 +291,7 @@ const UserManagement = () => {
                   <TableHead>User</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Verified</TableHead>
                   <TableHead>Joined</TableHead>
                   <TableHead>Delete User</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -334,6 +337,19 @@ const UserManagement = () => {
                           {user.isActive ? 'Active' : 'Inactive'}
                         </span>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {user.isVerified ? (
+                        <Badge variant="default" className="bg-green-100 text-green-700 hover:bg-green-100 border-green-200 flex items-center gap-1 w-fit">
+                          <BadgeCheck className="w-3.5 h-3.5" />
+                          Verified
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-gray-600 border-gray-300 flex items-center gap-1 w-fit">
+                          <ShieldAlert className="w-3.5 h-3.5" />
+                          Unverified
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-sm text-gray-500">
                       {new Date(user.createdAt).toLocaleDateString()}

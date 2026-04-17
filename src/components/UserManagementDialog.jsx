@@ -26,7 +26,9 @@ import {
   Trash2,
   Edit,
   Save,
-  X
+  X,
+  BadgeCheck,
+  ShieldAlert
 } from 'lucide-react';
 import api from '../services/api';
 import { userService } from '../services/userService';
@@ -48,8 +50,12 @@ export const UserManagementDialog = ({ isOpen, onClose, user, onUserUpdated }) =
     email: '',
     username: '',
     isActive: true,
+    isVerified: false,
     roleId: ''
   });
+
+  // Verification toggle state
+  const [verifyLoading, setVerifyLoading] = useState(false);
 
   // UI state
   const [isEditing, setIsEditing] = useState(false);
@@ -88,6 +94,7 @@ export const UserManagementDialog = ({ isOpen, onClose, user, onUserUpdated }) =
         email: user.email || '',
         username: user.username || '',
         isActive: user.isActive ?? true,
+        isVerified: user.isVerified ?? false,
         roleId: user.role?._id || ''
       });
     }
@@ -274,10 +281,27 @@ export const UserManagementDialog = ({ isOpen, onClose, user, onUserUpdated }) =
       email: user.email || '',
       username: user.username || '',
       isActive: user.isActive ?? true,
+      isVerified: user.isVerified ?? false,
       roleId: user.role?._id || ''
     });
     setIsEditing(false);
     setError('');
+  };
+
+  const handleToggleVerification = async () => {
+    if (!user?._id || verifyLoading) return;
+    const nextVerified = !formData.isVerified;
+    setVerifyLoading(true);
+    try {
+      const updated = await userService.setVerification(user._id, nextVerified);
+      setFormData(prev => ({ ...prev, isVerified: nextVerified }));
+      onUserUpdated(updated);
+      toast.success(nextVerified ? 'User marked as verified.' : 'User marked as unverified.');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update verification status');
+    } finally {
+      setVerifyLoading(false);
+    }
   };
 
   const handleResetPassword = async () => {
@@ -347,6 +371,17 @@ export const UserManagementDialog = ({ isOpen, onClose, user, onUserUpdated }) =
               <Badge variant={getRoleBadgeVariant(user.role?.name)}>
                 {user.role?.name || 'No role assigned'}
               </Badge>
+              {formData.isVerified ? (
+                <Badge variant="default" className="bg-green-100 text-green-700 hover:bg-green-100 border-green-200 flex items-center gap-1">
+                  <BadgeCheck className="w-3.5 h-3.5" />
+                  Verified
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-gray-600 border-gray-300 flex items-center gap-1">
+                  <ShieldAlert className="w-3.5 h-3.5" />
+                  Unverified
+                </Badge>
+              )}
             </div>
           </div>
         </div>
@@ -621,6 +656,52 @@ export const UserManagementDialog = ({ isOpen, onClose, user, onUserUpdated }) =
                   )}
                 </DialogContent>
               </Dialog>
+            {/* Verification Section */}
+            <div className={`border rounded-lg p-4 ${formData.isVerified ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start space-x-3">
+                  {formData.isVerified ? (
+                    <BadgeCheck className="w-5 h-5 text-green-600 mt-0.5" />
+                  ) : (
+                    <ShieldAlert className="w-5 h-5 text-gray-500 mt-0.5" />
+                  )}
+                  <div>
+                    <h4 className={`text-sm font-medium ${formData.isVerified ? 'text-green-800' : 'text-gray-800'}`}>
+                      Account Verification
+                    </h4>
+                    <p className={`text-sm mt-1 ${formData.isVerified ? 'text-green-700' : 'text-gray-600'}`}>
+                      {formData.isVerified
+                        ? 'This account is marked as verified (e.g. email OTP confirmed). You can revert this manually.'
+                        : 'This account is not verified. Use this to manually mark the account as verified, regardless of whether OTP verification was completed.'}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant={formData.isVerified ? 'outline' : 'default'}
+                  size="sm"
+                  onClick={handleToggleVerification}
+                  disabled={verifyLoading}
+                >
+                  {verifyLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Updating...
+                    </>
+                  ) : formData.isVerified ? (
+                    <>
+                      <ShieldAlert className="w-4 h-4 mr-2" />
+                      Mark Unverified
+                    </>
+                  ) : (
+                    <>
+                      <BadgeCheck className="w-4 h-4 mr-2" />
+                      Mark Verified
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+
             {/* Reset Password Section */}
             <div className="border border-yellow-200 rounded-lg p-4 bg-yellow-50">
               <div className="flex items-start space-x-3">

@@ -46,5 +46,10 @@ export const userService = {
   async unblockUser(id) {
     const response = await api.patch(`/admin/users/${id}/unblock`);
     return response.data.data;
+  },
+
+  async setVerification(id, isVerified) {
+    const response = await api.patch(`/admin/users/${id}/verify`, { isVerified });
+    return response.data.data;
   }
 };

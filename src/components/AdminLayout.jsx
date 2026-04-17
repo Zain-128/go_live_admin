@@ -77,8 +77,8 @@ const AdminLayout = ({ children, user, onLogout }) => {
       icon: Sparkles,
     },
     {
-      name: 'Ruby Crown (monthly USD)',
-      href: '/ruby-crown-wallet',
+      name: 'Top Spenders',
+      href: '/topspenders',
       icon: Crown,
     },
     {

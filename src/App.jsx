@@ -27,7 +27,7 @@ import CashoutOptionManagement from './pages/CashoutOptionManagement';
 import WithdrawRequests from './pages/WithdrawRequests';
 import WithdrawRequestDetails from './pages/WithdrawRequestDetails';
 import WithdrawRequestStreamDetails from './pages/WithdrawRequestStreamDetails';
-import RubyCrownWalletEligible from './pages/RubyCrownWalletEligible';
+import TopSpenders from './pages/TopSpenders';
 import GifterPayoutDetails from './pages/GifterPayoutDetails';
 import StreamerRubiesList from './pages/StreamerRubiesList';
 import StreamerRubiesDetail from './pages/StreamerRubiesDetail';
@@ -128,15 +128,16 @@ function App() {
           />
 
           <Route
-            path="/ruby-crown-wallet"
+            path="/topspenders"
             element={
               <ProtectedRoute>
                 <AdminLayout user={user} onLogout={handleLogout}>
-                  <RubyCrownWalletEligible />
+                  <TopSpenders />
                 </AdminLayout>
               </ProtectedRoute>
             }
           />
+          <Route path="/ruby-crown-wallet" element={<Navigate to="/topspenders" replace />} />
 
           <Route
             path="/qr-codes"
