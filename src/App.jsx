@@ -32,6 +32,9 @@ import GifterPayoutDetails from './pages/GifterPayoutDetails';
 import StreamerRubiesList from './pages/StreamerRubiesList';
 import StreamerRubiesDetail from './pages/StreamerRubiesDetail';
 import StreamerStreamGiftsAdmin from './pages/StreamerStreamGiftsAdmin';
+import SupportTickets from './pages/SupportTickets';
+import SupportTicketDetail from './pages/SupportTicketDetail';
+import SupportSettings from './pages/SupportSettings';
 
 // Auth check: token + user with admin/moderator level (level >= 3 or role name)
 const isAuthenticated = () => {
@@ -400,6 +403,37 @@ function App() {
               <ProtectedRoute>
                 <AdminLayout user={user} onLogout={handleLogout}>
                   <Settings />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/support"
+            element={
+              <ProtectedRoute>
+                <AdminLayout user={user} onLogout={handleLogout}>
+                  <SupportTickets />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/support/settings"
+            element={
+              <ProtectedRoute>
+                <AdminLayout user={user} onLogout={handleLogout}>
+                  <SupportSettings />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/support/:id"
+            element={
+              <ProtectedRoute>
+                <AdminLayout user={user} onLogout={handleLogout}>
+                  <SupportTicketDetail />
                 </AdminLayout>
               </ProtectedRoute>
             }

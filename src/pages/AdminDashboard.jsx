@@ -18,6 +18,7 @@ import {
 import dashboardService from '../services/dashboardService';
 import { subscriptionService } from '../services/subscriptionService';
 import { formatPrice, getTierBadgeVariant, getTierLabel } from '../lib/subscriptionUtils';
+import SupportDashboardWidget from '../components/SupportDashboardWidget';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState([
@@ -180,6 +181,9 @@ const AdminDashboard = () => {
           );
         })}
       </div>
+
+      {/* Support Widget */}
+      <SupportDashboardWidget />
 
       {/* Subscription Stats */}
       {subscriptionStats && (

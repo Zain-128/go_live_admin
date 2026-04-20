@@ -33,7 +33,10 @@ import {
   Crown,
   ImageIcon,
   Gem,
+  LifeBuoy,
+  Bell,
 } from 'lucide-react';
+import { supportService } from '../services/supportService';
 
 const AdminLayout = ({ children, user, onLogout }) => {
   const location = useLocation();
@@ -59,6 +62,23 @@ const AdminLayout = ({ children, user, onLogout }) => {
       setEcommerceMenuOpen(true);
     }
   }, [location.pathname, isOnSubscriptionPage, subscriptionMenuOpen, isOnEcommercePage, ecommerceMenuOpen]);
+
+  // Poll open-ticket count for the sidebar badge
+  const [openTicketCount, setOpenTicketCount] = React.useState(0);
+  React.useEffect(() => {
+    let cancelled = false;
+    const refresh = async () => {
+      try {
+        const stats = await supportService.getStats();
+        if (!cancelled) setOpenTicketCount(stats?.open || 0);
+      } catch {
+        /* ignore — user may not be authed yet */
+      }
+    };
+    refresh();
+    const id = setInterval(refresh, 60000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
 
   const navigation = [
     {
@@ -126,6 +146,19 @@ const AdminLayout = ({ children, user, onLogout }) => {
       name: 'Gifts',
       href: '/gifts',
       icon: Gift,
+    },
+    {
+      name: 'Support Tickets',
+      href: '/support',
+      icon: LifeBuoy,
+      badge: openTicketCount,
+      pathMatch: 'prefix',
+      pathExclude: ['/support/settings'],
+    },
+    {
+      name: 'Support Settings',
+      href: '/support/settings',
+      icon: Bell,
     },
     // {
     //   name: 'QR Codes',
@@ -213,7 +246,11 @@ const AdminLayout = ({ children, user, onLogout }) => {
   const isActive = (path) => location.pathname === path;
 
   const isNavItemActive = (item) => {
-    if (item.pathMatch === 'prefix') return location.pathname.startsWith(item.href);
+    if (item.pathMatch === 'prefix') {
+      if (!location.pathname.startsWith(item.href)) return false;
+      if (Array.isArray(item.pathExclude) && item.pathExclude.some((p) => location.pathname.startsWith(p))) return false;
+      return true;
+    }
     return location.pathname === item.href;
   };
 
@@ -301,7 +338,12 @@ const AdminLayout = ({ children, user, onLogout }) => {
                   onClick={() => setSidebarOpen(false)}
                 >
                   <Icon className="w-4 h-4" />
-                  <span>{item.name}</span>
+                  <span className="flex-1">{item.name}</span>
+                  {item.badge > 0 && (
+                    <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-semibold">
+                      {item.badge > 99 ? '99+' : item.badge}
+                    </span>
+                  )}
                 </Link>
               );
             })}
@@ -381,7 +423,12 @@ const AdminLayout = ({ children, user, onLogout }) => {
                 }`}
               >
                 <Icon className="w-4 h-4" />
-                <span>{item.name}</span>
+                <span className="flex-1">{item.name}</span>
+                {item.badge > 0 && (
+                  <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-semibold">
+                    {item.badge > 99 ? '99+' : item.badge}
+                  </span>
+                )}
               </Link>
             );
           })}
