@@ -116,6 +116,26 @@ export default function UserDetails() {
   const [lifetimeAuditLoading, setLifetimeAuditLoading] = useState(false);
   const [lifetimeReconciling, setLifetimeReconciling] = useState(false);
 
+  // Coin-adjust state (super-admin only).
+  const currentAdmin = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('adminUser') || '{}');
+    } catch {
+      return {};
+    }
+  })();
+  const canAdjustCoins = Number(currentAdmin?.role?.level || 0) >= 4;
+
+  const [adjustDirection, setAdjustDirection] = useState('credit');
+  const [adjustAmount, setAdjustAmount] = useState('');
+  const [adjustReason, setAdjustReason] = useState('');
+  const [adjustConfirmOpen, setAdjustConfirmOpen] = useState(false);
+  const [adjustConfirmText, setAdjustConfirmText] = useState('');
+  const [adjusting, setAdjusting] = useState(false);
+
+  const [adminActions, setAdminActions] = useState([]);
+  const [adminActionsLoading, setAdminActionsLoading] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -254,6 +274,69 @@ export default function UserDetails() {
     }
   };
 
+  const loadAdminActions = async () => {
+    try {
+      setAdminActionsLoading(true);
+      const data = await userService.getUserAdminActions(id, { page: 1, limit: 20 });
+      setAdminActions(data.actions || []);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to load admin activity');
+    } finally {
+      setAdminActionsLoading(false);
+    }
+  };
+
+  const adjustValidationError = (() => {
+    const amt = Number(adjustAmount);
+    if (!adjustAmount || !Number.isInteger(amt) || amt <= 0) return 'Enter a positive whole number';
+    if (amt > 100000) return 'Max 100,000 coins per adjustment';
+    const r = String(adjustReason || '').trim();
+    if (r.length < 10) return 'Reason must be at least 10 characters';
+    if (r.length > 500) return 'Reason too long (max 500)';
+    if (currentAdmin?._id && String(currentAdmin._id) === String(id)) {
+      return 'You cannot adjust your own balance';
+    }
+    return null;
+  })();
+
+  const openAdjustConfirm = () => {
+    if (adjustValidationError) {
+      toast.error(adjustValidationError);
+      return;
+    }
+    setAdjustConfirmText('');
+    setAdjustConfirmOpen(true);
+  };
+
+  const submitAdjustCoins = async () => {
+    if (adjustConfirmText !== 'CONFIRM') {
+      toast.error('Type CONFIRM to proceed');
+      return;
+    }
+    try {
+      setAdjusting(true);
+      const result = await userService.adjustUserCoins(id, {
+        direction: adjustDirection,
+        amount: Number(adjustAmount),
+        reason: adjustReason.trim(),
+      });
+      toast.success(
+        `${adjustDirection === 'credit' ? 'Credited' : 'Debited'} ${fmtNum(result.amount)} coins — new balance ${fmtNum(result.newBalance)}`
+      );
+      setAdjustAmount('');
+      setAdjustReason('');
+      setAdjustConfirmText('');
+      setAdjustConfirmOpen(false);
+      const fresh = await userService.getUserOverview(id);
+      setOverview(fresh);
+      loadAdminActions();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Adjustment failed');
+    } finally {
+      setAdjusting(false);
+    }
+  };
+
   const handleReconcile = async (orderId) => {
     if (!window.confirm(`Credit coins to this user for PayPal order ${orderId}?`)) return;
     try {
@@ -386,6 +469,7 @@ export default function UserDetails() {
           if (v === 'purchases' && purchases.length === 0) loadPurchases(1);
           if (v === 'wallet' && walletTx.length === 0) loadWalletTransactions(1);
           if (v === 'wallet' && !lifetimeAudit) loadLifetimeAudit();
+          if (v === 'wallet' && adminActions.length === 0) loadAdminActions();
           if (v === 'withdrawals' && withdrawals.length === 0) loadWithdrawals(1);
         }}
       >
@@ -646,6 +730,258 @@ export default function UserDetails() {
             </CardContent>
           </Card>
 
+          {/* Admin coin adjustment — super-admin only */}
+          {canAdjustCoins ? (
+            <Card className="border-amber-200">
+              <CardHeader>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      Admin coin adjustment
+                      <Badge variant="outline" className="border-amber-400 text-amber-700 text-xs">
+                        super-admin only
+                      </Badge>
+                    </CardTitle>
+                    <CardDescription>
+                      Add or remove coins with a reason. Every adjustment is logged
+                      (WalletTransaction + AdminActionLog) and notifies the user in-app and
+                      via push.
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap items-center gap-4">
+                  <label className="inline-flex items-center gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name="adjust-direction"
+                      value="credit"
+                      checked={adjustDirection === 'credit'}
+                      onChange={() => setAdjustDirection('credit')}
+                    />
+                    <span className="text-green-700 font-medium">Credit (add coins)</span>
+                  </label>
+                  <label className="inline-flex items-center gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name="adjust-direction"
+                      value="debit"
+                      checked={adjustDirection === 'debit'}
+                      onChange={() => setAdjustDirection('debit')}
+                    />
+                    <span className="text-rose-700 font-medium">Debit (remove coins)</span>
+                  </label>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="text-xs text-muted-foreground">Amount (coins, max 100,000)</label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="100000"
+                      step="1"
+                      placeholder="e.g. 500"
+                      value={adjustAmount}
+                      onChange={(e) => setAdjustAmount(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex items-end text-sm">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Preview</p>
+                      <p className="tabular-nums">
+                        {fmtNum(wallet.coins)}
+                        {' → '}
+                        <span
+                          className={
+                            adjustDirection === 'credit' ? 'text-green-700 font-semibold' : 'text-rose-700 font-semibold'
+                          }
+                        >
+                          {fmtNum(
+                            Number(wallet.coins || 0) +
+                              (adjustDirection === 'credit' ? 1 : -1) *
+                                (Number(adjustAmount) || 0)
+                          )}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs text-muted-foreground">
+                    Reason (required, 10–500 chars) — visible to the user in their notification
+                  </label>
+                  <textarea
+                    className="mt-1 w-full rounded-md border border-gray-300 bg-white p-2 text-sm"
+                    rows={3}
+                    maxLength={500}
+                    placeholder="e.g. Refund for purchase stuck on support ticket #1234"
+                    value={adjustReason}
+                    onChange={(e) => setAdjustReason(e.target.value)}
+                  />
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {adjustReason.trim().length}/500
+                  </p>
+                </div>
+
+                {adjustValidationError ? (
+                  <p className="text-xs text-rose-700">{adjustValidationError}</p>
+                ) : null}
+
+                {!adjustConfirmOpen ? (
+                  <div className="flex justify-end">
+                    <Button
+                      onClick={openAdjustConfirm}
+                      disabled={Boolean(adjustValidationError) || adjusting}
+                    >
+                      Review & apply
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="rounded-md border border-amber-300 bg-amber-50 p-3 space-y-3">
+                    <p className="text-sm">
+                      You are about to{' '}
+                      <span className="font-semibold">
+                        {adjustDirection === 'credit' ? 'CREDIT' : 'DEBIT'}{' '}
+                        {fmtNum(Number(adjustAmount) || 0)} coins
+                      </span>{' '}
+                      to/from <span className="font-semibold">@{user.username || user.email}</span>.
+                    </p>
+                    <p className="text-xs text-muted-foreground whitespace-pre-wrap">
+                      Reason: {adjustReason.trim()}
+                    </p>
+                    <div>
+                      <label className="text-xs text-muted-foreground">
+                        Type <span className="font-mono font-semibold">CONFIRM</span> to proceed
+                      </label>
+                      <Input
+                        autoFocus
+                        value={adjustConfirmText}
+                        onChange={(e) => setAdjustConfirmText(e.target.value)}
+                        placeholder="CONFIRM"
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setAdjustConfirmOpen(false);
+                          setAdjustConfirmText('');
+                        }}
+                        disabled={adjusting}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={submitAdjustCoins}
+                        disabled={adjustConfirmText !== 'CONFIRM' || adjusting}
+                      >
+                        {adjusting ? (
+                          <>
+                            <Loader2 className="size-4 animate-spin mr-1" /> Applying
+                          </>
+                        ) : (
+                          'Apply coin adjustment'
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {/* Admin activity log — visible to all admin levels, read-only */}
+          <Card>
+            <CardHeader>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <CardTitle>Admin activity on this user</CardTitle>
+                  <CardDescription>
+                    Append-only log of sensitive admin actions (currently: coin adjustments).
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={loadAdminActions}
+                  disabled={adminActionsLoading}
+                >
+                  {adminActionsLoading ? <Loader2 className="size-4 animate-spin" /> : 'Refresh'}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {adminActionsLoading && adminActions.length === 0 ? (
+                <div className="flex justify-center p-6">
+                  <Loader2 className="size-5 animate-spin text-gray-400" />
+                </div>
+              ) : adminActions.length === 0 ? (
+                <p className="p-4 text-center text-sm text-muted-foreground">
+                  No admin actions recorded.
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>When</TableHead>
+                      <TableHead>Admin</TableHead>
+                      <TableHead>Action</TableHead>
+                      <TableHead>Direction</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead className="text-right">Balance after</TableHead>
+                      <TableHead>Reason</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {adminActions.map((a) => (
+                      <TableRow key={a._id}>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {fmtDate(a.createdAt)}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {a.admin?.username ? `@${a.admin.username}` : a.admin?.name || '—'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-mono text-xs">
+                            {a.action}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {a.direction ? (
+                            <Badge
+                              className={
+                                a.direction === 'credit'
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-rose-100 text-rose-800'
+                              }
+                              variant="secondary"
+                            >
+                              {a.direction}
+                            </Badge>
+                          ) : (
+                            '—'
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums text-xs">
+                          {fmtNum(a.amount)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums text-xs">
+                          {fmtNum(a.newBalance)}
+                        </TableCell>
+                        <TableCell className="max-w-md truncate text-xs">
+                          {a.reason || '—'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -672,6 +1008,8 @@ export default function UserDetails() {
                     <option value="stream_earnings">stream_earnings</option>
                     <option value="live_gift_refund">live_gift_refund</option>
                     <option value="live_gift_reversal">live_gift_reversal</option>
+                    <option value="admin_coin_adjustment">admin_coin_adjustment</option>
+                    <option value="lifetime_rubies_reconcile">lifetime_rubies_reconcile</option>
                     <option value="conversion">conversion</option>
                     <option value="withdraw">withdraw</option>
                     <option value="referral">referral</option>

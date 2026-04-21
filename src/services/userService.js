@@ -109,4 +109,20 @@ export const userService = {
     const response = await api.post(`/admin/users/${userId}/lifetime-rubies/reconcile`);
     return response.data.data;
   },
+
+  async adjustUserCoins(userId, { direction, amount, reason }) {
+    const response = await api.post(`/admin/users/${userId}/coins/adjust`, {
+      direction,
+      amount,
+      reason,
+    });
+    return response.data.data;
+  },
+
+  async getUserAdminActions(userId, { page = 1, limit = 20 } = {}) {
+    const response = await api.get(
+      `/admin/users/${userId}/admin-actions?page=${page}&limit=${limit}`
+    );
+    return response.data.data;
+  },
 };
