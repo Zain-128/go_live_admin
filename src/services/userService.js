@@ -51,5 +51,52 @@ export const userService = {
   async setVerification(id, isVerified) {
     const response = await api.patch(`/admin/users/${id}/verify`, { isVerified });
     return response.data.data;
-  }
+  },
+
+  async getUserOverview(id) {
+    const response = await api.get(`/admin/users/${id}/overview`);
+    return response.data.data;
+  },
+
+  async getUserPurchases(id, { page = 1, limit = 20 } = {}) {
+    const response = await api.get(
+      `/admin/users/${id}/purchases?page=${page}&limit=${limit}`
+    );
+    return response.data.data;
+  },
+
+  async getUserTransactions(id, { page = 1, limit = 25, type } = {}) {
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+      ...(type ? { type } : {}),
+    });
+    const response = await api.get(`/admin/users/${id}/transactions?${params}`);
+    return response.data.data;
+  },
+
+  async getUserWithdrawals(id, { page = 1, limit = 20, status } = {}) {
+    const params = new URLSearchParams({
+      userId: id,
+      page: String(page),
+      limit: String(limit),
+      ...(status ? { status } : {}),
+    });
+    const response = await api.get(`/admin/withdraw-requests?${params}`);
+    return response.data.data;
+  },
+
+  async verifyPayPalOrder(userId, orderId) {
+    const response = await api.post(`/admin/users/${userId}/paypal/verify`, {
+      orderId,
+    });
+    return response.data.data;
+  },
+
+  async reconcilePayPalOrder(userId, orderId) {
+    const response = await api.post(`/admin/users/${userId}/paypal/reconcile`, {
+      orderId,
+    });
+    return response.data.data;
+  },
 };

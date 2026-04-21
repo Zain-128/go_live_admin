@@ -5,6 +5,7 @@ import { Toaster } from 'sonner';
 import AdminLayout from './components/AdminLayout';
 import AdminDashboard from './pages/AdminDashboard';
 import UserManagement from './pages/UserManagement';
+import UserDetails from './pages/UserDetails';
 import SponsoredCreators from './pages/SponsoredCreators';
 import Settings from './pages/Settings';
 import AdminLogin from './pages/AdminLogin';
@@ -114,6 +115,17 @@ function App() {
               <ProtectedRoute>
                 <AdminLayout user={user} onLogout={handleLogout}>
                   <UserManagement />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/users/:id"
+            element={
+              <ProtectedRoute>
+                <AdminLayout user={user} onLogout={handleLogout}>
+                  <UserDetails />
                 </AdminLayout>
               </ProtectedRoute>
             }
