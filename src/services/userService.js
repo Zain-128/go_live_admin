@@ -99,4 +99,14 @@ export const userService = {
     });
     return response.data.data;
   },
+
+  async getLifetimeRubiesAudit(userId) {
+    const response = await api.get(`/admin/users/${userId}/lifetime-rubies-audit`);
+    return response.data.data;
+  },
+
+  async reconcileLifetimeRubies(userId) {
+    const response = await api.post(`/admin/users/${userId}/lifetime-rubies/reconcile`);
+    return response.data.data;
+  },
 };
