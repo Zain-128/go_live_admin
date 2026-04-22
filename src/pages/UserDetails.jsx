@@ -1213,6 +1213,21 @@ export default function UserDetails() {
                                   admin-reconciled
                                 </Badge>
                               ) : null}
+                              {p.paypalCaptureId ? (
+                                <div className="mt-1 text-[10px] text-muted-foreground">
+                                  capture: {shortId(p.paypalCaptureId, 8, 5)}{' '}
+                                  <CopyBtn value={p.paypalCaptureId} />
+                                </div>
+                              ) : null}
+                              {p.paypalPayerEmail ? (
+                                <div className="mt-1 font-sans text-[11px] text-gray-700">
+                                  paid by{' '}
+                                  <span className="font-medium">{p.paypalPayerEmail}</span>
+                                  {p.paypalPayerName ? (
+                                    <span className="text-muted-foreground"> · {p.paypalPayerName}</span>
+                                  ) : null}
+                                </div>
+                              ) : null}
                             </TableCell>
                             <TableCell>
                               <Badge variant="outline" className="text-xs">
@@ -1548,6 +1563,27 @@ function VerifyResultCard({ result, onReconcile, reconciling }) {
               </p>
             </div>
           </>
+        ) : null}
+
+        {paypal?.captureId ? (
+          <div>
+            <p className="text-xs text-muted-foreground">Capture ID (PayPal dashboard)</p>
+            <div className="font-mono text-xs">
+              {paypal.captureId} <CopyBtn value={paypal.captureId} />
+            </div>
+          </div>
+        ) : null}
+
+        {paypal?.payerEmail ? (
+          <div>
+            <p className="text-xs text-muted-foreground">Paid by (PayPal account)</p>
+            <p className="text-sm font-medium">
+              {paypal.payerEmail} <CopyBtn value={paypal.payerEmail} />
+            </p>
+            {paypal.payerName ? (
+              <p className="text-xs text-muted-foreground">{paypal.payerName}</p>
+            ) : null}
+          </div>
         ) : null}
       </div>
 
