@@ -201,7 +201,10 @@ export const UserManagementDialog = ({ isOpen, onClose, user, onUserUpdated }) =
       setShowCustomBanInput(false);
       setCustomBanDays('');
       onUserUpdated(updated);
-      toast.success(option.permanent ? 'User permanently banned.' : `User banned for ${option.label}.`);
+      toast.success(
+        (option.permanent ? 'User permanently banned.' : `User banned for ${option.label}.`) +
+        ' Live stream ended and user logged out across all devices.'
+      );
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to ban user');
     } finally {
@@ -223,7 +226,7 @@ export const UserManagementDialog = ({ isOpen, onClose, user, onUserUpdated }) =
       setShowCustomBanInput(false);
       setCustomBanDays('');
       onUserUpdated(updated);
-      toast.success(`User banned for ${days} days.`);
+      toast.success(`User banned for ${days} days. Live stream ended and user logged out across all devices.`);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to ban user');
     } finally {
