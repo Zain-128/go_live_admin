@@ -35,6 +35,7 @@ import {
   Gem,
   LifeBuoy,
   Bell,
+  AlertTriangle,
 } from 'lucide-react';
 import { supportService } from '../services/supportService';
 
@@ -231,6 +232,24 @@ const AdminLayout = ({ children, user, onLogout }) => {
     //   icon: Settings,
     // },
   ];
+
+  // Super-admin-only entries. Hidden for moderators. Matches the backend
+  // requireSuperAdmin gate (role === "admin"); also honours shape variants
+  // used elsewhere (role.name/role.level) for defence in depth.
+  const isSuperAdmin = (() => {
+    const roleField = user?.role;
+    const name = (roleField?.name || roleField || '').toString().toUpperCase();
+    const level = roleField?.level;
+    return level >= 5 || name === 'ADMIN' || name === 'SUPER_ADMIN';
+  })();
+
+  if (isSuperAdmin) {
+    navigation.push({
+      name: 'Fraud cascade',
+      href: '/fraud-cascade',
+      icon: AlertTriangle,
+    });
+  }
 
   const handleLogout = () => {
     if (onLogout) {

@@ -36,6 +36,7 @@ import StreamerStreamGiftsAdmin from './pages/StreamerStreamGiftsAdmin';
 import SupportTickets from './pages/SupportTickets';
 import SupportTicketDetail from './pages/SupportTicketDetail';
 import SupportSettings from './pages/SupportSettings';
+import FraudCascade from './pages/FraudCascade';
 
 // Auth check: token + user with admin/moderator level (level >= 3 or role name)
 const isAuthenticated = () => {
@@ -451,6 +452,17 @@ function App() {
             }
           />
 
+
+          <Route
+            path="/fraud-cascade"
+            element={
+              <ProtectedRoute>
+                <AdminLayout user={user} onLogout={handleLogout}>
+                  <FraudCascade />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
 
           {/* Admin Login */}
           <Route

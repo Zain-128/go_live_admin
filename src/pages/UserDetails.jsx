@@ -37,6 +37,23 @@ import {
   TableRow,
 } from '../components/ui/table';
 import { userService } from '../services/userService';
+import FraudCascadeDialog from '../components/FraudCascadeDialog';
+
+// Super-admin only. Mirrors AdminLayout's check + the backend requireSuperAdmin
+// middleware (role === "admin"). Handles both string role and {role:{name,level}}.
+function isCurrentUserSuperAdmin() {
+  try {
+    const raw = localStorage.getItem('adminUser');
+    if (!raw) return false;
+    const u = JSON.parse(raw);
+    const roleField = u?.role;
+    const name = (roleField?.name || roleField || '').toString().toUpperCase();
+    const level = roleField?.level;
+    return level >= 5 || name === 'ADMIN' || name === 'SUPER_ADMIN';
+  } catch {
+    return false;
+  }
+}
 
 const fmtNum = (n) => (n == null ? '0' : Number(n).toLocaleString());
 const fmtUsd = (n) => (n == null ? '$0.00' : `$${Number(n).toFixed(2)}`);
@@ -428,6 +445,31 @@ export default function UserDetails() {
   const [withdrawalsPagination, setWithdrawalsPagination] = useState({ current: 1, total: 1, totalItems: 0, status: '' });
   const [withdrawalsLoading, setWithdrawalsLoading] = useState(false);
   const [withdrawalsStatus, setWithdrawalsStatus] = useState('');
+
+  // Fraud cascade: flag a specific WalletTransaction as the root of fraud.
+  // Super-admin only — the dialog + backend both re-check.
+  const superAdmin = isCurrentUserSuperAdmin();
+  const [fraudDialogOpen, setFraudDialogOpen] = useState(false);
+  const [fraudRootTxnId, setFraudRootTxnId] = useState('');
+  // Hide zero-amount cascade audit breadcrumbs by default — gift status flips
+  // and conversion links create rows with no balance movement, which clutter
+  // the timeline. Toggle to reveal for full audit.
+  const [showCascadeBreadcrumbs, setShowCascadeBreadcrumbs] = useState(false);
+  const openFraudCascade = (txnId) => {
+    setFraudRootTxnId(String(txnId || ''));
+    setFraudDialogOpen(true);
+  };
+  // A cascade-generated ledger entry shouldn't itself be re-flagged as fraud.
+  const CASCADE_GENERATED_TYPES = new Set([
+    'cascade_reversal',
+    'cascade_reversal_undo',
+    'lifetime_rubies_reconcile',
+  ]);
+  const isCascadeBreadcrumb = (t) =>
+    CASCADE_GENERATED_TYPES.has(t.type) &&
+    !t.coins &&
+    !t.rubies &&
+    !t.usd;
 
   const [verifyInput, setVerifyInput] = useState('');
   const [verifyResult, setVerifyResult] = useState(null);
@@ -1338,6 +1380,15 @@ export default function UserDetails() {
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={showCascadeBreadcrumbs}
+                      onChange={(e) => setShowCascadeBreadcrumbs(e.target.checked)}
+                      className="rounded border-gray-300"
+                    />
+                    Show cascade breadcrumbs
+                  </label>
                   <select
                     className="h-9 rounded-md border border-gray-300 bg-white px-2 text-sm"
                     value={walletTxType}
@@ -1394,15 +1445,27 @@ export default function UserDetails() {
                         <TableHead>Description</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>When</TableHead>
+                        {superAdmin ? <TableHead className="text-right">Fraud</TableHead> : null}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {walletTx.map((t) => (
+                      {walletTx
+                        .filter((t) => showCascadeBreadcrumbs || !isCascadeBreadcrumb(t))
+                        .map((t) => {
+                          const isCascadeType = CASCADE_GENERATED_TYPES.has(t.type);
+                          const alreadyRoot = !!t.rootOfCascade;
+                          const flaggable = superAdmin && !isCascadeType && !alreadyRoot;
+                          return (
                         <TableRow key={t._id}>
                           <TableCell>
                             <Badge variant="outline" className="font-mono text-xs">
                               {t.type}
                             </Badge>
+                            {t.cascadeId ? (
+                              <Badge className="ml-2 bg-red-100 text-red-800" variant="secondary">
+                                cascade-linked
+                              </Badge>
+                            ) : null}
                           </TableCell>
                           <TableCell className={`text-right tabular-nums ${t.coins < 0 ? 'text-red-600' : t.coins > 0 ? 'text-green-600' : ''}`}>
                             {t.coins ? (t.coins > 0 ? `+${fmtNum(t.coins)}` : fmtNum(t.coins)) : '—'}
@@ -1431,8 +1494,35 @@ export default function UserDetails() {
                             )}
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground">{fmtDate(t.createdAt)}</TableCell>
+                          {superAdmin ? (
+                            <TableCell className="text-right">
+                              {alreadyRoot ? (
+                                <Badge
+                                  className="bg-red-100 text-red-800 font-mono text-[10px]"
+                                  variant="secondary"
+                                  title={`Cascade ${t.rootOfCascade.cascadeId} · status: ${t.rootOfCascade.status}`}
+                                >
+                                  Cascade #{String(t.rootOfCascade.cascadeId).slice(-6)}
+                                </Badge>
+                              ) : flaggable ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-red-700 border-red-200 hover:bg-red-50"
+                                  title="Reverse this transaction and every downstream effect via fraud cascade"
+                                  onClick={() => openFraudCascade(t._id)}
+                                >
+                                  <AlertTriangle className="size-3.5 mr-1" />
+                                  Flag fraud
+                                </Button>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+                          ) : null}
                         </TableRow>
-                      ))}
+                          );
+                        })}
                     </TableBody>
                   </Table>
                   {walletTxPagination.total > 1 ? (
@@ -1581,21 +1671,44 @@ export default function UserDetails() {
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right">
-                              {p.paypalOrderId ? (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    setVerifyInput(p.paypalOrderId);
-                                    handleVerify(p.paypalOrderId);
-                                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                                  }}
-                                >
-                                  Re-verify
-                                </Button>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">—</span>
-                              )}
+                              <div className="flex items-center justify-end gap-2">
+                                {p.paypalOrderId ? (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setVerifyInput(p.paypalOrderId);
+                                      handleVerify(p.paypalOrderId);
+                                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    }}
+                                  >
+                                    Re-verify
+                                  </Button>
+                                ) : null}
+                                {superAdmin && p.rootOfCascade ? (
+                                  <Badge
+                                    className="bg-red-100 text-red-800 font-mono text-[10px]"
+                                    variant="secondary"
+                                    title={`Cascade ${p.rootOfCascade.cascadeId} · status: ${p.rootOfCascade.status}`}
+                                  >
+                                    Cascade #{String(p.rootOfCascade.cascadeId).slice(-6)}
+                                  </Badge>
+                                ) : superAdmin ? (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-red-700 border-red-200 hover:bg-red-50"
+                                    title="Reverse this purchase and every downstream effect via fraud cascade"
+                                    onClick={() => openFraudCascade(p._id)}
+                                  >
+                                    <AlertTriangle className="size-3.5 mr-1" />
+                                    Flag fraud
+                                  </Button>
+                                ) : null}
+                                {!p.paypalOrderId && !superAdmin ? (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                ) : null}
+                              </div>
                             </TableCell>
                           </TableRow>
                         );
@@ -1858,6 +1971,23 @@ export default function UserDetails() {
         </TabsContent>
       </Tabs>
 
+      {superAdmin ? (
+        <FraudCascadeDialog
+          open={fraudDialogOpen}
+          initialTxnId={fraudRootTxnId}
+          onClose={() => setFraudDialogOpen(false)}
+          onCompleted={() => {
+            // After execute, refresh the tabs so "cascade-linked" badges show
+            // on the relevant rows immediately.
+            if (walletTx.length > 0) {
+              loadWalletTransactions(walletTxPagination.current || 1);
+            }
+            if (purchases.length > 0) {
+              loadPurchases(purchasesPagination.current || 1);
+            }
+          }}
+        />
+      ) : null}
     </div>
   );
 }
