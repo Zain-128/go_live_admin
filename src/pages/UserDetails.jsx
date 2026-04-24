@@ -1497,13 +1497,17 @@ export default function UserDetails() {
                           {superAdmin ? (
                             <TableCell className="text-right">
                               {alreadyRoot ? (
-                                <Badge
-                                  className="bg-red-100 text-red-800 font-mono text-[10px]"
-                                  variant="secondary"
-                                  title={`Cascade ${t.rootOfCascade.cascadeId} · status: ${t.rootOfCascade.status}`}
+                                <Link
+                                  to={`/fraud-cascade/${t.rootOfCascade.cascadeId}`}
+                                  title={`Open cascade ${t.rootOfCascade.cascadeId} · status: ${t.rootOfCascade.status}`}
                                 >
-                                  Cascade #{String(t.rootOfCascade.cascadeId).slice(-6)}
-                                </Badge>
+                                  <Badge
+                                    className="bg-red-100 text-red-800 font-mono text-[10px] hover:bg-red-200 cursor-pointer"
+                                    variant="secondary"
+                                  >
+                                    Cascade #{String(t.rootOfCascade.cascadeId).slice(-6)}
+                                  </Badge>
+                                </Link>
                               ) : flaggable ? (
                                 <Button
                                   size="sm"
@@ -1686,13 +1690,17 @@ export default function UserDetails() {
                                   </Button>
                                 ) : null}
                                 {superAdmin && p.rootOfCascade ? (
-                                  <Badge
-                                    className="bg-red-100 text-red-800 font-mono text-[10px]"
-                                    variant="secondary"
-                                    title={`Cascade ${p.rootOfCascade.cascadeId} · status: ${p.rootOfCascade.status}`}
+                                  <Link
+                                    to={`/fraud-cascade/${p.rootOfCascade.cascadeId}`}
+                                    title={`Open cascade ${p.rootOfCascade.cascadeId} · status: ${p.rootOfCascade.status}`}
                                   >
-                                    Cascade #{String(p.rootOfCascade.cascadeId).slice(-6)}
-                                  </Badge>
+                                    <Badge
+                                      className="bg-red-100 text-red-800 font-mono text-[10px] hover:bg-red-200 cursor-pointer"
+                                      variant="secondary"
+                                    >
+                                      Cascade #{String(p.rootOfCascade.cascadeId).slice(-6)}
+                                    </Badge>
+                                  </Link>
                                 ) : superAdmin ? (
                                   <Button
                                     size="sm"

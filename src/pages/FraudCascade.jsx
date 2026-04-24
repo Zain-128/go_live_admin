@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { fraudCascadeService } from '../services/fraudCascadeService';
 import FraudCascadeDialog from '../components/FraudCascadeDialog';
 import {
@@ -203,7 +204,16 @@ export default function FraudCascade() {
                   return (
                     <TableRow key={c._id}>
                       <TableCell className="whitespace-nowrap text-xs">
-                        {fmtDate(c.createdAt)}
+                        <Link
+                          to={`/fraud-cascade/${c._id}`}
+                          className="hover:underline"
+                          title={`Cascade #${String(c._id).slice(-6)}`}
+                        >
+                          {fmtDate(c.createdAt)}
+                          <div className="text-[10px] font-mono text-muted-foreground">
+                            #{String(c._id).slice(-6)}
+                          </div>
+                        </Link>
                       </TableCell>
                       <TableCell>
                         <Badge variant={statusVariant(c.status)}>{c.status}</Badge>
