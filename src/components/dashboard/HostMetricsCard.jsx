@@ -74,7 +74,10 @@ const HostMetricsCard = () => {
   }
 
   const { cpu, memory, disk, heap, eventLoop, process: proc, hostInfo } = data;
-  const loopOk = eventLoop.p99Ms < 200;
+  // Defensive: backend may send null/undefined if its event-loop monitor had no samples
+  const loopMeanMs = Number(eventLoop?.meanMs) || 0;
+  const loopP99Ms = Number(eventLoop?.p99Ms) || 0;
+  const loopOk = loopP99Ms < 200;
 
   return (
     <Card>
@@ -137,9 +140,9 @@ const HostMetricsCard = () => {
           <div>
             <p className="text-xs text-muted-foreground">Event-loop lag</p>
             <p className={`font-semibold ${loopOk ? 'text-emerald-700' : 'text-red-600'}`}>
-              p99 {eventLoop.p99Ms.toFixed(2)} ms
+              p99 {loopP99Ms.toFixed(2)} ms
             </p>
-            <p className="text-xs text-muted-foreground">mean {eventLoop.meanMs.toFixed(2)} ms</p>
+            <p className="text-xs text-muted-foreground">mean {loopMeanMs.toFixed(2)} ms</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Process uptime</p>

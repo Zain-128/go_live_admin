@@ -15,6 +15,7 @@ import MongoCard from '../components/dashboard/MongoCard';
 import AlertsCard from '../components/dashboard/AlertsCard';
 import B2Card from '../components/dashboard/B2Card';
 import AgoraCard from '../components/dashboard/AgoraCard';
+import CardErrorBoundary from '../components/dashboard/CardErrorBoundary';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState([
@@ -135,10 +136,10 @@ const AdminDashboard = () => {
       </div>
 
       {/* Real alerts (threshold-based) */}
-      <AlertsCard />
+      <CardErrorBoundary name="System Alerts"><AlertsCard /></CardErrorBoundary>
 
       {/* Live Now (realtime) */}
-      <LiveNowCard />
+      <CardErrorBoundary name="Live Now"><LiveNowCard /></CardErrorBoundary>
 
       {/* Stream totals (all-time / range) */}
       {streamTotals && (
@@ -225,10 +226,10 @@ const AdminDashboard = () => {
       <div>
         <h2 className="text-xl font-bold text-gray-900 mb-4">Infrastructure</h2>
       </div>
-      <HostMetricsCard />
-      <MongoCard />
-      <AgoraCard />
-      <B2Card />
+      <CardErrorBoundary name="Host Metrics"><HostMetricsCard /></CardErrorBoundary>
+      <CardErrorBoundary name="MongoDB"><MongoCard /></CardErrorBoundary>
+      <CardErrorBoundary name="Agora"><AgoraCard /></CardErrorBoundary>
+      <CardErrorBoundary name="Backblaze B2"><B2Card /></CardErrorBoundary>
 
       {/* Recent Activity */}
       <Card>
