@@ -7,6 +7,7 @@ import {
   Users,
   Settings,
   Shield,
+  ShieldCheck,
   LogOut,
   Menu,
   X,
@@ -166,6 +167,11 @@ const AdminLayout = ({ children, user, onLogout }) => {
       name: 'Support Settings',
       href: '/support/settings',
       icon: Bell,
+    },
+    {
+      name: 'IAP Management',
+      href: '/iap',
+      icon: ShieldCheck,
     },
     // {
     //   name: 'QR Codes',
